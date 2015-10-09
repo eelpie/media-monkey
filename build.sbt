@@ -10,6 +10,8 @@ libraryDependencies ++= Seq(jdbc , cache , ws)
 
 libraryDependencies += "com.typesafe.play" %% "anorm" % "2.4.0"
 
+libraryDependencies += "org.im4java" % "im4java" % "1.4.0"
+
 libraryDependencies += specs2 % Test
 
 unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )  
@@ -21,3 +23,4 @@ packageSummary in Linux := "Media Monkey"
 packageDescription := "Media handling service"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
+
