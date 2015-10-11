@@ -5,7 +5,7 @@ import java.io.File
 
 import org.im4java.core.{ConvertCmd, IMOperation}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.tika.TikaService
 
@@ -17,10 +17,12 @@ object Application extends Controller {
 
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    def appendInferedType(tikaMetaData: JsValue): Unit = {
+    def appendInferedType(tikaMetaData: JsValue): JsValue = {
       val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
       if (tikaContentType.equals(Some("image/jpeg")) || tikaContentType.equals(Some("image/tiff"))) {
-        tikaMetaData -> ("type" -> "image")
+        tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
+      } else {
+        tikaMetaData
       }
     }
 
