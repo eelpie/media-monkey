@@ -5,7 +5,7 @@ import java.io.File
 
 import org.im4java.core.{ConvertCmd, IMOperation}
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.tika.TikaService
 
@@ -16,10 +16,20 @@ object Application extends Controller {
   val tikaService: TikaService = TikaService
 
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
+
+    def appendInferedType(tikaMetaData: JsValue): Unit = {
+      val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
+      if (tikaContentType.equals(Some("image/jpeg")) || tikaContentType.equals(Some("image/tiff"))) {
+        tikaMetaData -> ("type" -> "image")
+      }
+    }
+
     val f: File = request.body.file
     Logger.info("Received meta request to " + f.getAbsolutePath)
 
-    Ok(Json.toJson(tikaService.meta(f)))
+    val tikaMetaData: JsValue = tikaService.meta(f)
+
+    Ok(Json.toJson( appendInferedType(tikaMetaData)))
   }
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
@@ -32,9 +42,7 @@ object Application extends Controller {
     cmd.run(imResizeOperation(width, height, rotate), f.getAbsolutePath, output.getAbsolutePath());
     Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
 
-
     val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
-
 
     Ok.sendFile(output).withHeaders(CONTENT_TYPE -> ("image/" + JPEG))
   }
