@@ -14,16 +14,21 @@ object Application extends Controller {
   val JPEG = "jpeg"
 
   val tikaService: TikaService = TikaService
-
+  
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
+
+    val supportedImageTypes = Seq[String]("image/jpeg", "image/tiff")
 
     def appendInferedType(tikaMetaData: JsValue): JsValue = {
       val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
-      if (tikaContentType.equals(Some("image/jpeg")) || tikaContentType.equals(Some("image/tiff"))) {
-        tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
-      } else {
-        tikaMetaData
-      }
+
+      tikaContentType.fold(tikaMetaData)(tct =>
+        if (supportedImageTypes.contains(tct)) {
+          tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
+        } else {
+          tikaMetaData
+        }
+      )
     }
 
     val f: File = request.body.file
