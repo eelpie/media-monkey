@@ -14,10 +14,10 @@ object Application extends Controller {
   val JPEG = "jpeg"
 
   val tikaService: TikaService = TikaService
-  
+
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    val supportedImageTypes = Seq[String]("image/jpeg", "image/tiff")
+    val supportedImageTypes = Seq[String]("image/jpeg", "image/tiff", "image/png")
 
     def appendInferedType(tikaMetaData: JsValue): JsValue = {
       val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
