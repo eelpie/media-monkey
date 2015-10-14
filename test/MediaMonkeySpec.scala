@@ -25,7 +25,7 @@ class MediaMonkeySpec extends Specification {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      jsonResponse \ "type" must equalTo("image")
+      jsonResponse \ "type".toString must equalTo("image")
     }
   }
 
@@ -38,7 +38,7 @@ class MediaMonkeySpec extends Specification {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      jsonResponse \ "type" must equalTo("video")
+      jsonResponse \ "type".toString must equalTo("video")
     }
   }
 
