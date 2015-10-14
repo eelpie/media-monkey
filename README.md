@@ -16,6 +16,8 @@ Scale the posted image and return it as a JPEG.
 The image file should be sent as raw bytes on the request body.
 
 
+####POST /thumbnail
+
 ###POST /scale/callback
 
 [(widget, height, rotate)] callback
