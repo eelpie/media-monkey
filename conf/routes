@@ -1,3 +1,3 @@
 POST        /meta		controllers.Application.meta
 POST        /scale      controllers.Application.scale(width: Int, height: Int, rotate: Double)
-POST        /thumbnail  controllers.Application.thumbnail
+POST        /video/thumbnail  controllers.Application.thumbnail

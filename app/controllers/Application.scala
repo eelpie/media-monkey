@@ -1,7 +1,6 @@
 package controllers
 
 import java.io.File
-import java.util
 
 import org.im4java.core.{ConvertCmd, IMOperation}
 import play.api.Logger
@@ -9,12 +8,16 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.tika.TikaService
 
+import scala.sys.process.{ProcessLogger, _}
+
 object Application extends Controller {
 
   val Jpeg = "jpeg"
   val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/" + Jpeg)
 
   val tikaService: TikaService = TikaService
+
+  val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
@@ -54,24 +57,22 @@ object Application extends Controller {
     Ok.sendFile(output).withHeaders(ImageJpegHeader)
   }
 
-  def thumbnail() = Action(BodyParsers.parse.temporaryFile) {request =>
+  def thumbnailVideo() = Action(BodyParsers.parse.temporaryFile) {request =>
     val f: File = request.body.file
     Logger.info("Received transcode request to " + f.getAbsolutePath)
 
     val output: File = File.createTempFile("thumbnail", "." + Jpeg)
-    val avconvProcessBuilder: ProcessBuilder = new ProcessBuilder("avconv", "-y", "-i", f.getAbsolutePath, "-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
-    val command: util.List[String] = avconvProcessBuilder.command
-    Logger.info("Starting avconv: " + command)
-
-    val process: Process  = avconvProcessBuilder.redirectErrorStream(true).start()
-    process.waitFor   // TODO blocking? Read console stream
-
-    if (process.exitValue() == 0) {
+    val avconvCmd = Seq("avconv", "-y", "-i", f.getAbsolutePath, "-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+    val process: Process = avconvCmd.run(logger)
+    val exitValue: Int = process.exitValue()  // Blocks until the process completes
+    if (exitValue == 0) {
       val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
       Ok.sendFile(output).withHeaders(CONTENT_TYPE -> ("image/" + Jpeg))
+
     } else {
-      throw new RuntimeException  // TODO errors
+      Logger.warn("avconv process failed")
+      InternalServerError(Json.toJson("Video could not be processed"))
     }
   }
 
