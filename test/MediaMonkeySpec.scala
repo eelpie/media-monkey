@@ -17,18 +17,44 @@ class MediaMonkeySpec extends Specification {
   val tenSeconds = Duration(10, SECONDS)
 
   "can detect images" in {
-    val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
+    running(TestServer(port)) {
 
-    val response = Await.result(eventualResponse, tenSeconds)
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
-    response.status must equalTo(OK)
-    val jsonResponse = Json.parse(response.body)
-    jsonResponse \ "type" must equalTo("image")
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      jsonResponse \ "type" must equalTo("image")
+    }
   }
-  
+
+  "can detect videos" in {
+    running(TestServer(port)) {
+
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      jsonResponse \ "type" must equalTo("video")
+    }
+  }
+
   "can scale image" in {
     running(TestServer(port)) {
       val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+    }
+  }
+
+  "can thumbnail videos" in {
+    running(TestServer(port)) {
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 

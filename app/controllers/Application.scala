@@ -17,11 +17,10 @@ object Application extends Controller {
 
   val tikaService: TikaService = TikaService
 
-  val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
-
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
     val supportedImageTypes = Seq[String]("image/jpeg", "image/tiff", "image/png")
+    val supportedVideoTypes = Seq[String]("application/mp4")
 
     def appendInferedType(tikaMetaData: JsValue): JsValue = {
       val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
@@ -29,6 +28,8 @@ object Application extends Controller {
       tikaContentType.fold(tikaMetaData)(tct =>
         if (supportedImageTypes.contains(tct)) {
           tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
+        } else if (supportedVideoTypes.contains(tct)) {
+          tikaMetaData.as[JsObject] + ("type" -> Json.toJson("video"))
         } else {
           tikaMetaData
         }
@@ -58,14 +59,17 @@ object Application extends Controller {
   }
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) {request =>
+
+    val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
+
     val f: File = request.body.file
     Logger.info("Received transcode request to " + f.getAbsolutePath)
 
     val output: File = File.createTempFile("thumbnail", "." + Jpeg)
-
     val avconvCmd = Seq("avconv", "-y", "-i", f.getAbsolutePath, "-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
     val process: Process = avconvCmd.run(logger)
     val exitValue: Int = process.exitValue()  // Blocks until the process completes
+
     if (exitValue == 0) {
       val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
       Ok.sendFile(output).withHeaders(CONTENT_TYPE -> ("image/" + Jpeg))
