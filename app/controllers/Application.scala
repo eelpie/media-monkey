@@ -57,7 +57,7 @@ object Application extends Controller {
     Ok.sendFile(output).withHeaders(ImageJpegHeader)
   }
 
-  def thumbnailVideo() = Action(BodyParsers.parse.temporaryFile) {request =>
+  def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) {request =>
     val f: File = request.body.file
     Logger.info("Received transcode request to " + f.getAbsolutePath)
 
