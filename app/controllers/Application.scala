@@ -11,7 +11,8 @@ import services.video.VideoService
 
 object Application extends Controller {
 
-  val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/" + "jpeg")
+  val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/jpeg")
+  val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
 
   val tikaService: TikaService = TikaService
   val imageService: ImageService = ImageService
@@ -55,13 +56,25 @@ object Application extends Controller {
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>
     val f: File = request.body.file
-    Logger.info("Received transcode request to " + f.getAbsolutePath)
+    Logger.info("Received thumbnail request to " + f.getAbsolutePath)
 
     val output = videoService.thumbnail(f)
 
     output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
       val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
       Ok.sendFile(o).withHeaders(ImageJpegHeader)
+    })
+  }
+
+  def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
+    val f: File = request.body.file
+    Logger.info("Received transcode request to " + f.getAbsolutePath)
+
+    val output = videoService.transcode(f)
+
+    output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
+      val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
+      Ok.sendFile(o).withHeaders(VideoOggHeader)
     })
   }
 

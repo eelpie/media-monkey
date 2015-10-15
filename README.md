@@ -18,6 +18,10 @@ The image file should be sent as raw bytes on the request body.
 
 ####POST /video/thumbnail
 
+
+####POST /video/transcode
+
+
 ###POST /scale/callback
 
 [(widget, height, rotate)] callback
