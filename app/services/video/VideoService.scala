@@ -20,6 +20,7 @@ class VideoService {
     val exitValue: Int = process.exitValue() // Blocks until the process completes
 
     if (exitValue == 0) {
+      Logger.info("Thumbnail output to: " + output.getAbsolutePath)
       Some(output)
     } else {
       Logger.warn("avconv process failed")

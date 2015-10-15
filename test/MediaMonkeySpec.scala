@@ -2,7 +2,7 @@ import java.io.File
 
 import org.specs2.mutable._
 import play.api.Play.current
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{WS, WSResponse}
 import play.api.test.Helpers._
 import play.api.test._
@@ -25,7 +25,9 @@ class MediaMonkeySpec extends Specification {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      jsonResponse \ "type".toString must equalTo("image")
+
+      val result = jsonResponse \ "type"
+      result.toOption.get.as[String] must equalTo("image")
     }
   }
 
@@ -38,7 +40,9 @@ class MediaMonkeySpec extends Specification {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      jsonResponse \ "type".toString must equalTo("video")
+
+      val result = jsonResponse \ "type"
+      result.toOption.get.as[String] must equalTo("video")
     }
   }
 
