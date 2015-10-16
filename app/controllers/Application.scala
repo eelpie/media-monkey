@@ -6,14 +6,18 @@ import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
+import services.mediainfo.MediainfoService
 import services.tika.TikaService
 import services.video.VideoService
 
 object Application extends Controller {
 
+  val ApplicationJsonHeader: (String, String) = CONTENT_TYPE -> ("application/json")
+  val ApplicationXmlHeader: (String, String) = CONTENT_TYPE -> ("application/xml")
   val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/jpeg")
   val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
 
+  val mediainfoService: MediainfoService= MediainfoService
   val tikaService: TikaService = TikaService
   val imageService: ImageService = ImageService
   val videoService: VideoService = VideoService
@@ -75,6 +79,17 @@ object Application extends Controller {
     output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
       val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
       Ok.sendFile(o).withHeaders(VideoOggHeader)
+    })
+  }
+
+  def mediainfo() = Action(BodyParsers.parse.temporaryFile) { request =>
+    val f: File = request.body.file
+    Logger.info("Received transcode request to mediainfo" + f.getAbsolutePath)
+
+    val output = mediainfoService.mediainfo(f)
+
+    output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
+      Ok(o).withHeaders(ApplicationXmlHeader)
     })
   }
 
