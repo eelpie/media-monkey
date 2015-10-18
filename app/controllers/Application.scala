@@ -44,13 +44,12 @@ object Application extends Controller {
             th.as[String].replace(" pixels", "").toInt
           })
 
-          val tikaOrientation = tikaMetaData \ "Orientation"
-
-          tikaOrientation.toOption.fold()(o => {
-            if (o == "Right side, top (Rotate 90 CW)") {
+          (tikaMetaData \ "Orientation").toOption.fold()(o => {
+            val orientationsRequiringWidthHeightFlip = Seq("Right side, top (Rotate 90 CW)", "Left side, bottom (Rotate 270 CW)")
+            if (orientationsRequiringWidthHeightFlip.contains(o.as[String])) {
               val w = width
               width = height
-              height = width
+              height = w
             }
           })
 
