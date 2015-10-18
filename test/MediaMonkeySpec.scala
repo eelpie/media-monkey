@@ -44,6 +44,21 @@ class MediaMonkeySpec extends Specification {
       (jsonResponse \ "orientation").toOption.get.as[String] must equalTo("portrait")
     }
   }
+  
+  "image orientation should account for EXIF rotation corrections" in {
+    running(TestServer(port)) {
+
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.jpg"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2304)
+      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3456)
+      (jsonResponse \ "orientation").toOption.get.as[String] must equalTo("portrait")
+    }
+  }
 
   "can detect videos" in {
     running(TestServer(port)) {
