@@ -3,7 +3,7 @@ package controllers
 import java.io.File
 
 import play.api.Logger
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsLookupResult, JsObject, JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
@@ -32,7 +32,31 @@ object Application extends Controller {
 
       tikaContentType.fold(tikaMetaData)(tct =>
         if (supportedImageTypes.contains(tct)) {
-          tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
+          val withType: JsObject = tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
+
+          val tikaImageWidth: JsLookupResult = tikaMetaData \ "Image Width"
+          val tikaImageHeight: JsLookupResult = tikaMetaData \ "Image Height"
+
+          val withWidth: JsObject = tikaImageWidth.toOption.fold(withType)(tw =>
+            withType.as[JsObject] + ("width" -> tw)
+          )
+          val withHeight: JsObject = tikaImageHeight.toOption.fold(withWidth)(th =>
+            withWidth.as[JsObject] + ("height" -> th)
+          )
+
+          if (!tikaImageWidth.toOption.isEmpty && !tikaImageHeight.toOption.isEmpty) {
+
+            val orientation: String = if (tikaImageWidth.get.as[Int] > tikaImageHeight.get.as[Int]) {
+              "landscape"
+            } else {
+              "portrait"
+            }
+            withHeight.as[JsObject] + ("orientation" -> Json.toJson(orientation))
+            
+          } else {
+            withHeight
+          }
+
         } else if (supportedVideoTypes.contains(tct)) {
           tikaMetaData.as[JsObject] + ("type" -> Json.toJson("video"))
         } else {

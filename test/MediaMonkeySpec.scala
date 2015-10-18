@@ -26,8 +26,23 @@ class MediaMonkeySpec extends Specification {
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
 
-      val result = jsonResponse \ "type"
-      result.toOption.get.as[String] must equalTo("image")
+      (jsonResponse \ "type").toOption.get.as[String] must equalTo("image")
+    }
+  }
+
+  "image size and orientation is made available" in {
+    running(TestServer(port)) {
+
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+
+      (jsonResponse \ "width").toOption.get.as[String] must equalTo(2248)
+      (jsonResponse \ "height").toOption.get.as[String] must equalTo(3264)
+      (jsonResponse \ "orientation").toOption.get.as[String] must equalTo("portrait")
     }
   }
 
