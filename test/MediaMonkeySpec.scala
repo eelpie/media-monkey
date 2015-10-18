@@ -116,10 +116,10 @@ class MediaMonkeySpec extends Specification {
 
       val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scaled)
       val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-      
+
       metaResponse.status must equalTo(OK)
-      val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "GPS Latitude").toOption.isEmpty must equalTo(false)
+      val jsonResponse = Json.parse(metaResponse.body)
+      (jsonResponse \ "GPS Latitude").toOption.isEmpty must equalTo(true)
     }
   }
 
