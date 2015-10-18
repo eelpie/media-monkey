@@ -21,10 +21,12 @@ class ImageService {
   private def imResizeOperation(width: Int, height: Int, rotate: Double): IMOperation = {
     val op: IMOperation = new IMOperation()
     op.addImage()
+    op.autoOrient()
     op.rotate(rotate)
     op.resize(width, height, "^")
     op.gravity("Center")
     op.crop(width, height, 0, 0)
+    op.strip()
     op.addImage()
     op
   }

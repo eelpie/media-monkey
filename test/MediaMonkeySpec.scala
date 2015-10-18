@@ -99,7 +99,6 @@ class MediaMonkeySpec extends Specification {
     }
   }
 
-  /*
   "sensitive exif data must be stripped from scaled images" in {
     running(TestServer(port)) {
 
@@ -123,8 +122,7 @@ class MediaMonkeySpec extends Specification {
       (jsonResponse \ "GPS Latitude").toOption.isEmpty must equalTo(true)
     }
   }
-  */
-  
+
   "can thumbnail videos" in {
     running(TestServer(port)) {
       val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
