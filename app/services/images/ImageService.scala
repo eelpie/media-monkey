@@ -25,7 +25,6 @@ class ImageService {
     op.resize(width, height, "^")
     op.gravity("Center")
     op.crop(width, height, 0, 0)
-    op.strip()
     op.addImage()
     op
   }
