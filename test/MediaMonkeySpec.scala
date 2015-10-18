@@ -60,6 +60,20 @@ class MediaMonkeySpec extends Specification {
     }
   }
 
+  "exif data can be extracted from images" in {
+    running(TestServer(port)) {
+
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "GPS Latitude").toOption.get.as[String] must equalTo("37° 45' 18.26\"")
+
+    }
+  }
+
   "can detect videos" in {
     running(TestServer(port)) {
 
