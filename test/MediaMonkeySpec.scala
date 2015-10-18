@@ -1,4 +1,4 @@
-import java.io.File
+import java.io.{FileOutputStream, BufferedOutputStream, File}
 
 import org.specs2.mutable._
 import play.api.Play.current
@@ -98,6 +98,32 @@ class MediaMonkeySpec extends Specification {
       response.status must equalTo(OK)
     }
   }
+
+  "sensitive exif data must be stripped from scaled images" in {
+    running(TestServer(port)) {
+
+      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      response.bodyAsBytes
+
+      val scaled: File = File.createTempFile("image", ".tmp")
+
+      val target = new BufferedOutputStream(new FileOutputStream(scaled))
+      try response.bodyAsBytes.foreach( target.write(_) ) finally target.close;
+
+      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scaled)
+      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
+      
+      metaResponse.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "GPS Latitude").toOption.isEmpty must equalTo(false)
+    }
+  }
+
+
 
   "can thumbnail videos" in {
     running(TestServer(port)) {
