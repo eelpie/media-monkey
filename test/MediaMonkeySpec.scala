@@ -123,8 +123,6 @@ class MediaMonkeySpec extends Specification {
     }
   }
 
-
-
   "can thumbnail videos" in {
     running(TestServer(port)) {
       val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
