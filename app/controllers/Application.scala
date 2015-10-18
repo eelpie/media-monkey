@@ -37,22 +37,28 @@ object Application extends Controller {
           val tikaImageWidth: JsLookupResult = tikaMetaData \ "Image Width"
           val tikaImageHeight: JsLookupResult = tikaMetaData \ "Image Height"
 
-          val withWidth: JsObject = tikaImageWidth.toOption.fold(withType)(tw =>
-            withType.as[JsObject] + ("width" -> tw)
+          val width: Option[Int] = tikaImageWidth.toOption.map(tw => {
+            tw.as[String].replace(" pixels", "").toInt
+          })
+          val height: Option[Int] = tikaImageHeight.toOption.map(th => {
+            th.as[String].replace(" pixels", "").toInt
+          })
+
+          val withWidth = width.fold(withType)(w =>
+            withType.as[JsObject] + ("width" -> Json.toJson(w))
           )
-          val withHeight: JsObject = tikaImageHeight.toOption.fold(withWidth)(th =>
-            withWidth.as[JsObject] + ("height" -> th)
+          val withHeight = height.fold(withWidth)(h =>
+            withWidth.as[JsObject] + ("height" -> Json.toJson(h))
           )
 
-          if (!tikaImageWidth.toOption.isEmpty && !tikaImageHeight.toOption.isEmpty) {
-
-            val orientation: String = if (tikaImageWidth.get.as[Int] > tikaImageHeight.get.as[Int]) {
+          if (!width.isEmpty && !height.isEmpty) {
+            val orientation: String = if (width.get > height.get) {
               "landscape"
             } else {
               "portrait"
             }
             withHeight.as[JsObject] + ("orientation" -> Json.toJson(orientation))
-            
+
           } else {
             withHeight
           }
