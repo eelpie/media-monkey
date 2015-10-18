@@ -34,14 +34,24 @@ object Application extends Controller {
         if (supportedImageTypes.contains(tct)) {
           val withType: JsObject = tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
 
-          val tikaImageWidth: JsLookupResult = tikaMetaData \ "Image Width"
-          val tikaImageHeight: JsLookupResult = tikaMetaData \ "Image Height"
+          val tikaImageWidth = tikaMetaData \ "Image Width"
+          val tikaImageHeight = tikaMetaData \ "Image Height"
 
-          val width: Option[Int] = tikaImageWidth.toOption.map(tw => {
+          var width: Option[Int] = tikaImageWidth.toOption.map(tw => {
             tw.as[String].replace(" pixels", "").toInt
           })
-          val height: Option[Int] = tikaImageHeight.toOption.map(th => {
+          var height: Option[Int] = tikaImageHeight.toOption.map(th => {
             th.as[String].replace(" pixels", "").toInt
+          })
+
+          val tikaOrientation = tikaMetaData \ "Orientation"
+
+          tikaOrientation.toOption.fold()(o => {
+            if (o == "Right side, top (Rotate 90 CW)") {
+              val w = width
+              width = height
+              height = width
+            }
           })
 
           val withWidth = width.fold(withType)(w =>
