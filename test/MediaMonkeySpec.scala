@@ -107,7 +107,12 @@ class MediaMonkeySpec extends Specification {
 
       val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
 
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scalingResponse.bodyAsBytes)
+      val tf = java.io.File.createTempFile("scaled", "tmp")
+      val fos: FileOutputStream = new FileOutputStream(tf);
+      fos.write(scalingResponse.bodyAsBytes)
+      fos.close
+
+      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(tf)
       val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
       val jsonMeta = Json.parse(metaResponse.body)
       (jsonMeta \ "contentType").toOption.get.as[String] must equalTo("image/png")
