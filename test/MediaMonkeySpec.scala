@@ -115,7 +115,7 @@ class MediaMonkeySpec extends Specification {
       val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(tf)
       val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
       val jsonMeta = Json.parse(metaResponse.body)
-      (jsonMeta \ "contentType").toOption.get.as[String] must equalTo("image/png")
+      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/png")
     }
   }
 
