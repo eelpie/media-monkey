@@ -122,7 +122,7 @@ class MediaMonkeySpec extends Specification {
 
       val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
 
-      scalingResponse.status must equalTo(OK)
+      scalingResponse.status must equalTo(BAD_REQUEST)
     }
   }
 
