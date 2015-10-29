@@ -17,6 +17,9 @@ object Application extends Controller {
   val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/jpeg")
   val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
 
+  val supportedImageOutputTypes = Map("image/jpeg" -> "jpg", "image/png" -> "png")
+  val defaultImageOutputType: Option[String] = Some(supportedImageOutputTypes.head._2)
+
   val mediainfoService: MediainfoService= MediainfoService
   val tikaService: TikaService = TikaService
   val imageService: ImageService = ImageService
@@ -89,12 +92,22 @@ object Application extends Controller {
   }
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
-    val f: File = request.body.file
-    Logger.info("Received scale request to " + f.getAbsolutePath)
 
-    val output = imageService.resizeImage(f, width, height, rotate)
-    val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
-    Ok.sendFile(output).withHeaders(ImageJpegHeader)
+    def inferOutputTypeFromAcceptHeader(acceptsHeader: Option[String]): Option[String] = {
+      acceptsHeader.fold(defaultImageOutputType)(ah =>
+        supportedImageOutputTypes.get(ah)
+      )
+    }
+
+    val acceptHeader: Option[String] = request.headers.get("Accept")
+    inferOutputTypeFromAcceptHeader(acceptHeader).fold(BadRequest("Unsupported image output format requested"))(op => {
+      val f: File = request.body.file
+      Logger.info("Received scale request to " + f.getAbsolutePath)
+
+      val output = imageService.resizeImage(f, width, height, rotate, op)
+      val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
+      Ok.sendFile(output).withHeaders(CONTENT_TYPE -> acceptHeader.get) // TODO Naked get
+    })
   }
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>

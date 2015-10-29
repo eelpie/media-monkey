@@ -7,10 +7,8 @@ import play.api.Logger
 
 class ImageService {
 
-  val Jpeg = "jpeg"
-
-  def resizeImage(input: File, width: Int, height: Int, rotate: Double): File = {
-    val output: File = File.createTempFile("image", "." + Jpeg)
+  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String): File = {
+    val output: File = File.createTempFile("image", "." + outputFormat)
     Logger.info("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
     val cmd: ConvertCmd = new ConvertCmd();
     cmd.run(imResizeOperation(width, height, rotate), input.getAbsolutePath, output.getAbsolutePath());
