@@ -60,7 +60,7 @@ class MediaMonkeySpec extends Specification {
     }
   }
 
-  "exif data can be extracted from images" in {
+  "EXIF data can be extracted from images" in {
     running(TestServer(port)) {
 
       val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
@@ -96,6 +96,33 @@ class MediaMonkeySpec extends Specification {
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
+    }
+  }
+
+  "image output format can be specified via the accepts header" in {
+    running(TestServer(port)) {
+      val eventualScalingResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+        withHeaders(("Accept", "image/png")).
+        post(new File("test/resources/IMG_9758.JPG"))
+
+      val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
+
+      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scalingResponse.bodyAsBytes)
+      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
+      val jsonMeta = Json.parse(metaResponse.body)
+      (jsonMeta \ "contentType").toOption.get.as[String] must equalTo("image/png")
+    }
+  }
+
+  "unknown image output formats should result in a 400 response" in {
+    running(TestServer(port)) {
+      val eventualScalingResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+        withHeaders(("Accept", "image/sausages")).
+        post(new File("test/resources/IMG_9758.JPG"))
+
+      val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
+
+      scalingResponse.status must equalTo(OK)
     }
   }
 
