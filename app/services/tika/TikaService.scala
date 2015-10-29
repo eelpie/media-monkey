@@ -15,7 +15,7 @@ class TikaService {
   def meta(f: File): JsValue = {
     Logger.info("Posting submitted file to Taki for typing")
     val asyncHttpClient: AsyncHttpClient = WS.client.underlying
-    val putBuilder = asyncHttpClient.preparePut("http://localhost:9998/meta").
+    val putBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
       addHeader("Accept", "application/json; charset=UTF-8").
       setBody(new FileInputStream(f))
 

@@ -17,7 +17,7 @@ object Application extends Controller {
   val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/jpeg")
   val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
 
-  val supportedImageOutputTypes = Map("image/jpeg" -> "jpg", "image/png" -> "png")
+  val supportedImageOutputTypes = Map("*/*" -> "jpg", "image/jpeg" -> "jpg", "image/png" -> "png")
   val defaultImageOutputType: Option[String] = Some(supportedImageOutputTypes.head._2)
 
   val mediainfoService: MediainfoService= MediainfoService
@@ -93,10 +93,10 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    def inferOutputTypeFromAcceptHeader(acceptsHeader: Option[String]): Option[String] = {
-      acceptsHeader.fold(defaultImageOutputType)(ah =>
+    def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[String] = {
+      acceptHeader.fold(defaultImageOutputType)(ah => {
         supportedImageOutputTypes.get(ah)
-      )
+      })
     }
 
     val acceptHeader: Option[String] = request.headers.get("Accept")
