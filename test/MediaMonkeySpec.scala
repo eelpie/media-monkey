@@ -10,7 +10,7 @@ import play.api.test._
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
 
-class MediaMonkeySpec extends Specification {
+class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   val port: Port = 3334
   val localUrl = "http://localhost:" + port.toString
@@ -108,9 +108,7 @@ class MediaMonkeySpec extends Specification {
       val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
 
       val tf = java.io.File.createTempFile("scaled", "tmp")
-      val fos: FileOutputStream = new FileOutputStream(tf);
-      fos.write(scalingResponse.bodyAsBytes)
-      fos.close
+      writeResponseBodyToFile(scalingResponse, tf)
 
       val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(tf)
       val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
@@ -139,12 +137,10 @@ class MediaMonkeySpec extends Specification {
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
-      response.bodyAsBytes
 
       val scaled: File = File.createTempFile("image", ".tmp")
 
-      val target = new BufferedOutputStream(new FileOutputStream(scaled))
-      try response.bodyAsBytes.foreach( target.write(_) ) finally target.close;
+      writeResponseBodyToFile(response, scaled)
 
       val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scaled)
       val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
