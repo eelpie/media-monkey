@@ -18,22 +18,19 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can detect images" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-
       (jsonResponse \ "type").toOption.get.as[String] must equalTo("image")
     }
   }
 
   "image size and orientation should be summarised" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
@@ -47,8 +44,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "image orientation should account for EXIF rotation corrections" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.JPG"))
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.JPG"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
@@ -62,8 +58,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "EXIF data can be extracted from images" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
@@ -76,35 +71,34 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale image" in {
     running(TestServer(port)) {
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(600)
     }
   }
 
   "image output format can be specified via the Accept header" in {
     running(TestServer(port)) {
-      val eventualScalingResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
         withHeaders(("Accept", "image/png")).
         post(new File("test/resources/IMG_9758.JPG"))
 
-      val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
+      val response = Await.result(eventualScalingResponse, tenSeconds)
 
-      val tf = java.io.File.createTempFile("scaled", "tmp")
-      writeResponseBodyToFile(scalingResponse, tf)
-
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(tf)
-      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-      val jsonMeta = Json.parse(metaResponse.body)
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/png")
     }
   }
 
   "unknown image output formats should result in a 400 response" in {
     running(TestServer(port)) {
-      val eventualScalingResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
         withHeaders(("Accept", "image/sausages")).
         post(new File("test/resources/IMG_9758.JPG"))
 
@@ -116,96 +110,75 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "sensitive exif data must be stripped from scaled images" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
-
-      val scaled: File = File.createTempFile("image", ".tmp")
-
-      writeResponseBodyToFile(response, scaled)
-
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(scaled)
-      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-
-      metaResponse.status must equalTo(OK)
-      val jsonResponse = Json.parse(metaResponse.body)
-      (jsonResponse \ "GPS Latitude").toOption.isEmpty must equalTo(true)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "GPS Latitude").toOption.isEmpty must equalTo(true)
     }
   }
 
 
   "can detect videos" in {
     running(TestServer(port)) {
-
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-
-      val result = jsonResponse \ "type"
-      result.toOption.get.as[String] must equalTo("video")
+      (jsonResponse \ "type").toOption.get.as[String] must equalTo("video")
     }
   }
 
   "can thumbnail videos" in {
     running(TestServer(port)) {
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
-
-      val thumbnail: File = File.createTempFile("thumbnail", ".tmp")
-      writeResponseBodyToFile(response, thumbnail)
-
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(thumbnail)
-      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-      val jsonResponse = Json.parse(metaResponse.body)
-      val jsonMeta = Json.parse(metaResponse.body)
+      val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
     }
   }
 
   "can transcode videos" in {
     running(TestServer(port)) {
-      val eventualResponse: Future[WSResponse] = WS.url(localUrl + "/video/transcode").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = WS.url(localUrl + "/video/transcode").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
-
-      val transcoded: File = File.createTempFile("transcoded", ".tmp")
-      writeResponseBodyToFile(response, transcoded)
-
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(transcoded)
-      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-      val jsonResponse = Json.parse(metaResponse.body)
-      val jsonMeta = Json.parse(metaResponse.body)
+      val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("video/ogg")
     }
   }
 
   "video output format can be specified via the Accept header" in {
+
     running(TestServer(port)) {
-      val eventualTranscodingResponse: Future[WSResponse] = WS.url(localUrl + "/video/transcode").
+      val eventualTranscodingResponse = WS.url(localUrl + "/video/transcode").
         withHeaders(("Accept", "video/mp4")).
         post(new File("test/resources/IMG_0004.MOV"))
 
-      val trancodingResponse = Await.result(eventualTranscodingResponse, tenSeconds)
+      val response = Await.result(eventualTranscodingResponse, tenSeconds)
 
-      val tf = java.io.File.createTempFile("transcoded", "tmp")
-      writeResponseBodyToFile(trancodingResponse, tf)
-
-      val eventualMetaResponse: Future[WSResponse] = WS.url(localUrl + "/meta").post(tf)
-      val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
-      val jsonMeta = Json.parse(metaResponse.body)
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("video/mp4")
     }
+  }
+
+  private def metadataForResponse(response: WSResponse): JsValue = {
+    val tf = java.io.File.createTempFile("response", "tmp")
+    writeResponseBodyToFile(response, tf)
+
+    val eventualMetaResponse = WS.url(localUrl + "/meta").post(tf)
+    val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
+    Json.parse(metaResponse.body)
   }
 
 }
