@@ -94,8 +94,8 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    val acceptHeader: Option[String] = request.headers.get("Accept")
-    inferOutputTypeFromAcceptHeader(acceptHeader).fold(BadRequest("Unsupported image output format requested"))(of => {
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept")).fold(BadRequest("Unsupported image output format requested"))(of => {
+
       val f: File = request.body.file
       Logger.info("Received scale request to " + f.getAbsolutePath)
 
@@ -106,14 +106,18 @@ object Application extends Controller {
   }
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>
-    val f: File = request.body.file
-    Logger.info("Received thumbnail request to " + f.getAbsolutePath)
 
-    val output = videoService.thumbnail(f, defaultOutputFormat.get.mineType)
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept")).fold(BadRequest("Unsupported image output format requested"))(of => {
 
-    output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
-      val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
-      Ok.sendFile(o).withHeaders(CONTENT_TYPE -> defaultOutputFormat.get.mineType)
+      val f: File = request.body.file
+      Logger.info("Received thumbnail request to " + f.getAbsolutePath)
+
+      val output = videoService.thumbnail(f, of.mineType)
+
+      output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
+        val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
+        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
+      })
     })
   }
 
