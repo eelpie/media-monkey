@@ -3,7 +3,7 @@ package controllers
 import java.io.File
 
 import play.api.Logger
-import play.api.libs.json.{JsLookupResult, JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
@@ -90,29 +90,31 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    val supportedImageOutputTypes = Map("image/jpeg" -> "jpg", "image/png" -> "png")
-    val defaultImageOutputType: Option[(String, String)] = Some(supportedImageOutputTypes.head._1, supportedImageOutputTypes.head._2)
+    case class ImageOutputFormat(mineType: String, fileExtension: String)
 
-    def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[(String, String)] = {
-      acceptHeader.fold(defaultImageOutputType)(ah => {
+    val supportedImageOutputFormats = Seq(ImageOutputFormat("image/jpeg", "jpg"), ImageOutputFormat("image/png", "png"))
+
+    def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[ImageOutputFormat] = {
+
+      val defaultOutputFormat = supportedImageOutputFormats.headOption
+
+      acceptHeader.fold(defaultOutputFormat)(ah => {
         if (ah.equals("*/*")) {
-          supportedImageOutputTypes.head
+          defaultOutputFormat
+        } else {
+          supportedImageOutputFormats.find(sf => sf.mineType.eq(ah))
         }
-
-        val maybeString: Option[String] = supportedImageOutputTypes.get(ah)
-        val map: Option[(String, String)] = maybeString.map(op => (ah, op))
-        map
       })
     }
 
     val acceptHeader: Option[String] = request.headers.get("Accept")
-    inferOutputTypeFromAcceptHeader(acceptHeader).fold(BadRequest("Unsupported image output format requested"))(op => {
+    inferOutputTypeFromAcceptHeader(acceptHeader).fold(BadRequest("Unsupported image output format requested"))(of => {
       val f: File = request.body.file
       Logger.info("Received scale request to " + f.getAbsolutePath)
 
-      val output = imageService.resizeImage(f, width, height, rotate, op._2)
+      val output = imageService.resizeImage(f, width, height, rotate, of.fileExtension)
       val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
-      Ok.sendFile(output).withHeaders(CONTENT_TYPE -> op._1)
+      Ok.sendFile(output).withHeaders(CONTENT_TYPE -> of.mineType)
     })
   }
 
