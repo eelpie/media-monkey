@@ -8,14 +8,13 @@ import scala.sys.process.{ProcessLogger, _}
 
 class VideoService {
 
-  val Jpeg = "jpeg"
   val Ogg = "ogg"
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def thumbnail(input: File): Option[File] = {
+  def thumbnail(input: File, outputFormat: String): Option[File] = {
 
-    val output: File = File.createTempFile("thumbnail", "." + Jpeg)
+    val output: File = File.createTempFile("thumbnail", "." + outputFormat)
     val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
     val process: Process = avconvCmd.run(logger)
     val exitValue: Int = process.exitValue() // Blocks until the process completes

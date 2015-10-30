@@ -14,7 +14,11 @@ object Application extends Controller {
 
   val ApplicationJsonHeader: (String, String) = CONTENT_TYPE -> ("application/json")
   val ApplicationXmlHeader: (String, String) = CONTENT_TYPE -> ("application/xml")
-  val ImageJpegHeader: (String, String) = CONTENT_TYPE -> ("image/jpeg")
+
+  case class ImageOutputFormat(mineType: String, fileExtension: String)
+  val supportedImageOutputFormats = Seq(ImageOutputFormat("image/jpeg", "jpg"), ImageOutputFormat("image/png", "png"))
+  val defaultOutputFormat = supportedImageOutputFormats.headOption
+
   val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
 
   val mediainfoService: MediainfoService= MediainfoService
@@ -90,23 +94,6 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    case class ImageOutputFormat(mineType: String, fileExtension: String)
-
-    val supportedImageOutputFormats = Seq(ImageOutputFormat("image/jpeg", "jpg"), ImageOutputFormat("image/png", "png"))
-
-    def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[ImageOutputFormat] = {
-
-      val defaultOutputFormat = supportedImageOutputFormats.headOption
-
-      acceptHeader.fold(defaultOutputFormat)(ah => {
-        if (ah.equals("*/*")) {
-          defaultOutputFormat
-        } else {
-          supportedImageOutputFormats.find(sf => sf.mineType.eq(ah))
-        }
-      })
-    }
-
     val acceptHeader: Option[String] = request.headers.get("Accept")
     inferOutputTypeFromAcceptHeader(acceptHeader).fold(BadRequest("Unsupported image output format requested"))(of => {
       val f: File = request.body.file
@@ -122,11 +109,11 @@ object Application extends Controller {
     val f: File = request.body.file
     Logger.info("Received thumbnail request to " + f.getAbsolutePath)
 
-    val output = videoService.thumbnail(f)
+    val output = videoService.thumbnail(f, defaultOutputFormat.get.mineType)
 
     output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
       val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
-      Ok.sendFile(o).withHeaders(ImageJpegHeader)
+      Ok.sendFile(o).withHeaders(CONTENT_TYPE -> defaultOutputFormat.get.mineType)
     })
   }
 
@@ -149,7 +136,18 @@ object Application extends Controller {
     val output = mediainfoService.mediainfo(f)
 
     output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
-      Ok(o).withHeaders(ApplicationXmlHeader)
+      Ok(o).withHeaders(ApplicationXmlHeader) // TODO translate to JSON
+    })
+  }
+
+  private def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[ImageOutputFormat] = {
+
+    acceptHeader.fold(defaultOutputFormat)(ah => {
+      if (ah.equals("*/*")) {
+        defaultOutputFormat
+      } else {
+        supportedImageOutputFormats.find(sf => sf.mineType.eq(ah))
+      }
     })
   }
 
