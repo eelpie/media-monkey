@@ -3,14 +3,14 @@ package services.tika
 import java.io.{File, FileInputStream}
 
 import com.ning.http.client.{AsyncHttpClient, Response}
-import play.api.Logger
+import play.api.{Play, Logger}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WS
 import play.api.Play.current
 
-class TikaService {
+trait TikaService {
 
-  val tikaUrl = "http://localhost:9998"
+  val tikaUrl: String
 
   def meta(f: File): JsValue = {
     Logger.info("Posting submitted file to Taki for typing")
@@ -27,4 +27,8 @@ class TikaService {
 
 }
 
-object TikaService extends TikaService
+object TikaService extends TikaService {
+
+  override lazy val tikaUrl = Play.configuration.getString("tika.url").get
+
+}
