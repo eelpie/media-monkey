@@ -90,11 +90,15 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    val supportedImageOutputTypes = Map("*/*" -> "jpg", "image/jpeg" -> "jpg", "image/png" -> "png")
+    val supportedImageOutputTypes = Map("image/jpeg" -> "jpg", "image/png" -> "png")
     val defaultImageOutputType: Option[(String, String)] = Some(supportedImageOutputTypes.head._1, supportedImageOutputTypes.head._2)
 
     def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[(String, String)] = {
       acceptHeader.fold(defaultImageOutputType)(ah => {
+        if (ah.equals("*/*")) {
+          supportedImageOutputTypes.head
+        }
+
         val maybeString: Option[String] = supportedImageOutputTypes.get(ah)
         val map: Option[(String, String)] = maybeString.map(op => (ah, op))
         map
