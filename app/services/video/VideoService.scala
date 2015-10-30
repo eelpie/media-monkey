@@ -8,8 +8,6 @@ import scala.sys.process.{ProcessLogger, _}
 
 class VideoService {
 
-  val Ogg = "ogg"
-
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
   def thumbnail(input: File, outputFormat: String): Option[File] = {
@@ -28,9 +26,9 @@ class VideoService {
     }
   }
 
-  def transcode(input: File): Option[File] = {
+  def transcode(input: File, outputFormat: String): Option[File] = {
 
-    val output: File = File.createTempFile("transcoded", "." + Ogg)
+    val output: File = File.createTempFile("transcoded", "." + outputFormat)
     val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, output.getAbsolutePath)
     val process: Process = avconvCmd.run(logger)
     val exitValue: Int = process.exitValue() // Blocks until the process completes

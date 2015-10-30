@@ -1,3 +1,4 @@
+
 package controllers
 
 import java.io.File
@@ -15,11 +16,11 @@ object Application extends Controller {
   val ApplicationJsonHeader: (String, String) = CONTENT_TYPE -> ("application/json")
   val ApplicationXmlHeader: (String, String) = CONTENT_TYPE -> ("application/xml")
 
-  case class ImageOutputFormat(mineType: String, fileExtension: String)
-  val supportedImageOutputFormats = Seq(ImageOutputFormat("image/jpeg", "jpg"), ImageOutputFormat("image/png", "png"))
-  val defaultOutputFormat = supportedImageOutputFormats.headOption
+  case class OutputFormat(mineType: String, fileExtension: String)
+  val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
+  val supportedVideoOutputFormats = Seq(OutputFormat("video/ogg", "ogg"))
 
-  val VideoOggHeader: (String, String) = CONTENT_TYPE -> ("video/ogg")
+  val UnsupportedOutputFormatRequested: String = "Unsupported output format requested"
 
   val mediainfoService: MediainfoService= MediainfoService
   val tikaService: TikaService = TikaService
@@ -94,7 +95,7 @@ object Application extends Controller {
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept")).fold(BadRequest("Unsupported image output format requested"))(of => {
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
 
       val f: File = request.body.file
       Logger.info("Received scale request to " + f.getAbsolutePath)
@@ -107,7 +108,7 @@ object Application extends Controller {
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept")).fold(BadRequest("Unsupported image output format requested"))(of => {
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
 
       val f: File = request.body.file
       Logger.info("Received thumbnail request to " + f.getAbsolutePath)
@@ -122,14 +123,17 @@ object Application extends Controller {
   }
 
   def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
-    val f: File = request.body.file
-    Logger.info("Received transcode request to " + f.getAbsolutePath)
 
-    val output = videoService.transcode(f)
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
+      val f: File = request.body.file
+      Logger.info("Received transcode request to " + f.getAbsolutePath)
 
-    output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
-      val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
-      Ok.sendFile(o).withHeaders(VideoOggHeader)
+      val output = videoService.transcode(f, of.fileExtension)
+
+      output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
+        val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
+        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
+      })
     })
   }
 
@@ -144,13 +148,15 @@ object Application extends Controller {
     })
   }
 
-  private def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String]): Option[ImageOutputFormat] = {
+  private def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String], availableFormats: Seq[OutputFormat]): Option[OutputFormat] = {
+
+    val defaultOutputFormat = availableFormats.headOption
 
     acceptHeader.fold(defaultOutputFormat)(ah => {
       if (ah.equals("*/*")) {
         defaultOutputFormat
       } else {
-        supportedImageOutputFormats.find(sf => sf.mineType.eq(ah))
+        availableFormats.find(sf => sf.mineType.eq(ah))
       }
     })
   }
