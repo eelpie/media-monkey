@@ -2,15 +2,11 @@ package services.mediainfo
 
 import java.io.File
 
-import org.scalatest.path
-import org.w3c.dom.Document
 import play.api.Logger
 
 import scala.sys.process.{ProcessLogger, _}
-import scala.xml.{Node, Elem}
 
 class MediainfoService {
-
 
   def mediainfo(f: File) = {
 

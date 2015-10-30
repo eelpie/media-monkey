@@ -21,8 +21,7 @@ trait TikaService {
 
     val response: Response = asyncHttpClient.executeRequest(putBuilder.build()).get
 
-    val tikaJson: JsValue = Json.parse(response.getResponseBody)
-    tikaJson
+    Json.parse(response.getResponseBody)
   }
 
 }

@@ -18,7 +18,7 @@ object Application extends Controller {
 
   case class OutputFormat(mineType: String, fileExtension: String)
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
-  val supportedVideoOutputFormats = Seq(OutputFormat("video/ogg", "ogg"), OutputFormat("video/mp4", "mp4"))
+  val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"))
 
   val UnsupportedOutputFormatRequested: String = "Unsupported output format requested"
 
@@ -30,13 +30,13 @@ object Application extends Controller {
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
     val recognisedImageTypes = supportedImageOutputFormats
-    val recognisedVideoTypes = supportedVideoOutputFormats
+    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
 
-    def appendInferedType(tikaMetaData: JsValue): JsValue = {
+    def appendInferedAttributes(tikaMetaData: JsValue): JsValue = {
       val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
 
-      tikaContentType.fold(tikaMetaData)(tct =>
-        if (recognisedImageTypes.contains(tct)) {
+      tikaContentType.fold(tikaMetaData)(tct => {
+        if (recognisedImageTypes.exists(it => it.mineType == tct)) {
           val withType: JsObject = tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
 
           val tikaImageWidth = tikaMetaData \ "Image Width"
@@ -77,20 +77,22 @@ object Application extends Controller {
             withHeight
           }
 
-        } else if (recognisedVideoTypes.contains(tct)) {
+        } else if (recognisedVideoTypes.exists(vt => vt.mineType == tct)) {
           tikaMetaData.as[JsObject] + ("type" -> Json.toJson("video"))
         } else {
           tikaMetaData
         }
+      }
       )
+
     }
 
     val f: File = request.body.file
     Logger.info("Received meta request to " + f.getAbsolutePath)
 
-    val tikaMetaData: JsValue = tikaService.meta(f)
+    val tikaMetaData = tikaService.meta(f)
 
-    Ok(Json.toJson(appendInferedType(tikaMetaData)))
+    Ok(Json.toJson(appendInferedAttributes(tikaMetaData)))
   }
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
@@ -113,7 +115,7 @@ object Application extends Controller {
       val f: File = request.body.file
       Logger.info("Received thumbnail request to " + f.getAbsolutePath)
 
-      val output = videoService.thumbnail(f, of.mineType)
+      val output = videoService.thumbnail(f, of.fileExtension)
 
       output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
         val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
@@ -151,12 +153,11 @@ object Application extends Controller {
   private def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String], availableFormats: Seq[OutputFormat]): Option[OutputFormat] = {
 
     val defaultOutputFormat = availableFormats.headOption
-
     acceptHeader.fold(defaultOutputFormat)(ah => {
       if (ah.equals("*/*")) {
         defaultOutputFormat
       } else {
-        availableFormats.find(sf => sf.mineType.eq(ah))
+        availableFormats.find(sf => sf.mineType == ah)
       }
     })
   }

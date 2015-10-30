@@ -29,7 +29,7 @@ class VideoService {
   def transcode(input: File, outputFormat: String): Option[File] = {
 
     val output: File = File.createTempFile("transcoded", "." + outputFormat)
-    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, output.getAbsolutePath)
+    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-strict", "experimental", output.getAbsolutePath)
     val process: Process = avconvCmd.run(logger)
     val exitValue: Int = process.exitValue() // Blocks until the process completes
 
