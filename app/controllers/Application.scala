@@ -98,27 +98,16 @@ object Application extends Controller {
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-
-      val f: File = request.body.file
-      Logger.info("Received scale request to " + f.getAbsolutePath)
-
-      val output = imageService.resizeImage(f, width, height, rotate, of.fileExtension)
-      val source = scala.io.Source.fromFile(new File(output.getAbsolutePath))
-      Ok.sendFile(output).withHeaders(CONTENT_TYPE -> of.mineType)
+      val result = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
+      Ok.sendFile(result).withHeaders(CONTENT_TYPE -> of.mineType)
     })
   }
 
   def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-
-      val f: File = request.body.file
-      Logger.info("Received thumbnail request to " + f.getAbsolutePath)
-
-      val output = videoService.thumbnail(f, of.fileExtension)
-
-      output.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
-        val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
+      val result = videoService.thumbnail(request.body.file, of.fileExtension)
+      result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
         Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
       })
     })
@@ -127,31 +116,21 @@ object Application extends Controller {
   def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val f: File = request.body.file
-      Logger.info("Received transcode request to " + f.getAbsolutePath)
-
-      val output = videoService.transcode(f, of.fileExtension)
-
-      output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
-        val source = scala.io.Source.fromFile(new File(o.getAbsolutePath))
+      val result = videoService.transcode(request.body.file, of.fileExtension)
+      result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
         Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
       })
     })
   }
 
   def mediainfo() = Action(BodyParsers.parse.temporaryFile) { request =>
-    val f: File = request.body.file
-    Logger.info("Received transcode request to mediainfo" + f.getAbsolutePath)
-
-    val output = mediainfoService.mediainfo(f)
-
-    output.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
+    val result = mediainfoService.mediainfo(request.body.file)
+    result.fold(InternalServerError(Json.toJson("Media info could not be determined")))(o => {
       Ok(o).withHeaders(ApplicationXmlHeader) // TODO translate to JSON
     })
   }
 
   private def inferOutputTypeFromAcceptHeader(acceptHeader: Option[String], availableFormats: Seq[OutputFormat]): Option[OutputFormat] = {
-
     val defaultOutputFormat = availableFormats.headOption
     acceptHeader.fold(defaultOutputFormat)(ah => {
       if (ah.equals("*/*")) {
