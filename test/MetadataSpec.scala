@@ -51,8 +51,6 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
 
-      println(response.body)
-
       val jsonResponse = Json.parse(response.body)
       (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2304)
       (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3456)
@@ -69,7 +67,33 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
       (jsonResponse \ "GPS Latitude").toOption.get.as[String] must equalTo("37° 45' 18.26\"")
+    }
+  }
 
+  "can detect videos" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "type").toOption.get.as[String] must equalTo("video")
+    }
+  }
+
+  "video size can be detected" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      println(response.body)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2448)
+      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3264)
     }
   }
 

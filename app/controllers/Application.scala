@@ -1,6 +1,9 @@
 
 package controllers
 
+import java.io.File
+
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
@@ -31,7 +34,7 @@ object Application extends Controller {
     val recognisedImageTypes = supportedImageOutputFormats
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
 
-    def inferAttributes(metadata: Map[String, String]): Map[String, Any] = {
+    def inferAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
 
       def inferContentType(md: Map[String, String]): Option[String] = {
         md.get("Content-Type").flatMap(ct => {
@@ -74,13 +77,20 @@ object Application extends Controller {
           orientation.map(o => ("orientation" -> o))).flatten
       }
 
+      def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
+        Logger.info("mediainfo for video: " + mediainfoService.mediainfo(file))
+        Seq()
+      }
+
       val contentType: Option[String] = inferContentType(metadata)
 
       val contentTypeSpecificAttributes = contentType.flatMap(ct => {
         if (ct == "image") {
           Some(inferImageSpecificAttributes(metadata))
+        } else if (ct == "video") {
+          Some(inferVideoSpecificAttributes(metadata))
         } else {
-           None
+          None
         }
       })
 
@@ -104,7 +114,7 @@ object Application extends Controller {
         }
       }
 
-      Ok(Json.toJson(md ++ inferAttributes(md)))
+      Ok(Json.toJson(md ++ inferAttributes(md, request.body.file)))
     })
   }
 

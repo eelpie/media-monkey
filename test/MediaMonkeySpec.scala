@@ -68,18 +68,6 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
-  "can detect videos" in {
-    running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
-
-      val response = Await.result(eventualResponse, tenSeconds)
-
-      response.status must equalTo(OK)
-      val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "type").toOption.get.as[String] must equalTo("video")
-    }
-  }
-
   "can thumbnail videos" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
