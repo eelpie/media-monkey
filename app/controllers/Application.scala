@@ -1,15 +1,14 @@
 
 package controllers
 
-import java.io.File
-
-import play.api.Logger
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
 import services.video.VideoService
+
+import scala.collection.immutable.Iterable
 
 object Application extends Controller {
 
@@ -32,67 +31,81 @@ object Application extends Controller {
     val recognisedImageTypes = supportedImageOutputFormats
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
 
-    def appendInferedAttributes(tikaMetaData: JsValue): JsValue = {
-      val tikaContentType: Option[String] = (tikaMetaData \ "Content-Type").toOption.map(jv => jv.as[String])
+    def inferAttributes(metadata: Map[String, String]): Map[String, Any] = {
 
-      tikaContentType.fold(tikaMetaData)(tct => {
-        if (recognisedImageTypes.exists(it => it.mineType == tct)) {
-          val withType: JsObject = tikaMetaData.as[JsObject] + ("type" -> Json.toJson("image"))
-
-          val tikaImageWidth = tikaMetaData \ "Image Width"
-          val tikaImageHeight = tikaMetaData \ "Image Height"
-
-          var width: Option[Int] = tikaImageWidth.toOption.map(tw => {
-            tw.as[String].replace(" pixels", "").toInt
-          })
-          var height: Option[Int] = tikaImageHeight.toOption.map(th => {
-            th.as[String].replace(" pixels", "").toInt
-          })
-
-          (tikaMetaData \ "Orientation").toOption.fold()(o => {
-            val orientationsRequiringWidthHeightFlip = Seq("Right side, top (Rotate 90 CW)", "Left side, bottom (Rotate 270 CW)")
-            if (orientationsRequiringWidthHeightFlip.contains(o.as[String])) {
-              val w = width
-              width = height
-              height = w
-            }
-          })
-
-          val withWidth = width.fold(withType)(w =>
-            withType.as[JsObject] + ("width" -> Json.toJson(w))
-          )
-          val withHeight = height.fold(withWidth)(h =>
-            withWidth.as[JsObject] + ("height" -> Json.toJson(h))
-          )
-
-          if (!width.isEmpty && !height.isEmpty) {
-            val orientation: String = if (width.get > height.get) {
-              "landscape"
-            } else {
-              "portrait"
-            }
-            withHeight.as[JsObject] + ("orientation" -> Json.toJson(orientation))
-
+      def inferContentType(md: Map[String, String]): Option[String] = {
+        md.get("Content-Type").flatMap(ct => {
+          if (recognisedImageTypes.exists(it => it.mineType == ct)) {
+            Some("image")
+          } else if (recognisedVideoTypes.exists(vt => vt.mineType == ct)) {
+            Some("video")
           } else {
-            withHeight
+            None
           }
-
-        } else if (recognisedVideoTypes.exists(vt => vt.mineType == tct)) {
-          tikaMetaData.as[JsObject] + ("type" -> Json.toJson("video"))
-        } else {
-          tikaMetaData
-        }
+        })
       }
-      )
 
+      def inferImageSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
+        val imageDimensions: Option[(Int, Int)] = metadata.get("Image Width").flatMap(iw => {
+          metadata.get("Image Height").map(ih => {
+            (iw.replace(" pixels", "").toInt, ih.replace(" pixels", "").toInt)
+          })
+        })
+
+        val exifOrientation: Option[String] = metadata.get("Orientation")
+
+        val orientedImageDimensions: Option[(Int, Int)] = exifOrientation.fold(imageDimensions)(eo => {
+          imageDimensions.map(im => {
+            val orientationsRequiringWidthHeightFlip = Seq("Right side, top (Rotate 90 CW)", "Left side, bottom (Rotate 270 CW)")
+            if (orientationsRequiringWidthHeightFlip.contains(eo)) {
+              (im._2, im._1)
+            } else {
+              im
+            }
+          })
+        })
+
+        val orientation = orientedImageDimensions.map(im => {
+         if (im._1 > im._2) "landscape" else "portrait"
+        })
+
+        Seq(orientedImageDimensions.map(id => ("width" -> id._1)),
+          orientedImageDimensions.map(id => ("height" -> id._2)),
+          orientation.map(o => ("orientation" -> o))).flatten
+      }
+
+      val contentType: Option[String] = inferContentType(metadata)
+
+      val contentTypeSpecificAttributes = contentType.flatMap(ct => {
+        if (ct == "image") {
+          Some(inferImageSpecificAttributes(metadata))
+        } else {
+           None
+        }
+      })
+
+      (contentTypeSpecificAttributes ++ contentType.map(ct => Seq(("type" -> ct)))).flatten.toMap
     }
 
-    val f: File = request.body.file
-    Logger.info("Received meta request to " + f.getAbsolutePath)
+    tikaService.meta(request.body.file).fold(InternalServerError("Could not process metadata"))(md => {
 
-    val tikaMetaData = tikaService.meta(f)
+      implicit val writes = new Writes[Map[String, Any]] {
+        override def writes(o: Map[String, Any]): JsValue = {
+          val map = o.map(i => {
+            val value: Any = i._2
+            val json: JsValue = value match {
+              case i: Int => JsNumber(i)
+              case _ => Json.toJson (value.toString)
+            }
+            (i._1, json)
+          }).toList
 
-    Ok(Json.toJson(appendInferedAttributes(tikaMetaData)))
+          JsObject(map.toList)
+        }
+      }
+
+      Ok(Json.toJson(md ++ inferAttributes(md)))
+    })
   }
 
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
