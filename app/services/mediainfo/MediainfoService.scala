@@ -2,13 +2,16 @@ package services.mediainfo
 
 import java.io.File
 
+import model.Track
 import play.api.Logger
 
 import scala.sys.process.{ProcessLogger, _}
 
 class MediainfoService {
 
-  def mediainfo(f: File) = {
+  val mediainfoParser = MediainfoParser
+
+  def mediainfo(f: File): Option[Seq[Track]] = {
 
     val mediainfoCmd = Seq("mediainfo", "--Output=XML", f.getAbsolutePath)
 
@@ -23,12 +26,12 @@ class MediainfoService {
     val exitValue: Int = process.exitValue() // Blocks until the process completes
 
     if (exitValue == 0) {
-      Some(out.mkString)
+      Some(mediainfoParser.parse(out.mkString))
+
     } else {
       Logger.warn("mediainfo process failed")
       None
     }
-
   }
 
 }

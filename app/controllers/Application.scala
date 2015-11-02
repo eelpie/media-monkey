@@ -3,6 +3,7 @@ package controllers
 
 import java.io.File
 
+import model.Track
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers, Controller}
@@ -11,23 +12,21 @@ import services.mediainfo.MediainfoService
 import services.tika.TikaService
 import services.video.VideoService
 
-import scala.collection.immutable.Iterable
-
 object Application extends Controller {
 
-  val ApplicationJsonHeader: (String, String) = CONTENT_TYPE -> ("application/json")
-  val ApplicationXmlHeader: (String, String) = CONTENT_TYPE -> ("application/xml")
+  val ApplicationJsonHeader = CONTENT_TYPE -> ("application/json")
+  val ApplicationXmlHeader = CONTENT_TYPE -> ("application/xml")
 
   case class OutputFormat(mineType: String, fileExtension: String)
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"))
 
-  val UnsupportedOutputFormatRequested: String = "Unsupported output format requested"
+  val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
-  val mediainfoService: MediainfoService= MediainfoService
-  val tikaService: TikaService = TikaService
-  val imageService: ImageService = ImageService
-  val videoService: VideoService = VideoService
+  val mediainfoService: MediainfoService = MediainfoService
+  val tikaService = TikaService
+  val imageService = ImageService
+  val videoService = VideoService
 
   def meta = Action(BodyParsers.parse.temporaryFile) { request =>
 
@@ -78,8 +77,20 @@ object Application extends Controller {
       }
 
       def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
-        Logger.info("mediainfo for video: " + mediainfoService.mediainfo(file))
-        Seq()
+        val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
+        Logger.info("mediainfo for video: " + mediainfoTracks)
+
+        val videoTrackDimensions: Option[(Int, Int)] = mediainfoTracks.flatMap(mi => {
+          mi.find(t => t.trackType == "Video").headOption.flatMap(v => {
+            v.width.flatMap(w =>
+              v.height.map(h =>
+                (w, h)
+              )
+            )
+          })
+        })
+
+        Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2)).flatten).flatten
       }
 
       val contentType: Option[String] = inferContentType(metadata)
@@ -149,7 +160,7 @@ object Application extends Controller {
   def mediainfo() = Action(BodyParsers.parse.temporaryFile) { request =>
     val result = mediainfoService.mediainfo(request.body.file)
     result.fold(InternalServerError(Json.toJson("Media info could not be determined")))(o => {
-      Ok(o).withHeaders(ApplicationXmlHeader) // TODO translate to JSON
+      Ok(Json.toJson(o)).withHeaders(ApplicationXmlHeader)
     })
   }
 
