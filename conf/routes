@@ -1,5 +1,4 @@
 POST        /meta		controllers.Application.meta
-POST        /mediainfo  controllers.Application.mediainfo
 POST        /scale      controllers.Application.scale(width: Int, height: Int, rotate: Double)
 POST        /video/thumbnail  controllers.Application.videoThumbnail
 POST        /video/transcode  controllers.Application.videoTranscode

@@ -15,7 +15,6 @@ import services.video.VideoService
 object Application extends Controller {
 
   val ApplicationJsonHeader = CONTENT_TYPE -> ("application/json")
-  val ApplicationXmlHeader = CONTENT_TYPE -> ("application/xml")
 
   case class OutputFormat(mineType: String, fileExtension: String)
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
@@ -154,13 +153,6 @@ object Application extends Controller {
       result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
         Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
       })
-    })
-  }
-
-  def mediainfo() = Action(BodyParsers.parse.temporaryFile) { request =>
-    val result = mediainfoService.mediainfo(request.body.file)
-    result.fold(InternalServerError(Json.toJson("Media info could not be determined")))(o => {
-      Ok(Json.toJson(o)).withHeaders(ApplicationXmlHeader)
     })
   }
 
