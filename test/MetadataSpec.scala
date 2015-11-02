@@ -88,12 +88,10 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       val response = Await.result(eventualResponse, tenSeconds)
 
-      println(response.body)
-
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2448)
-      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3264)
+      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(568)
+      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(320)
     }
   }
 

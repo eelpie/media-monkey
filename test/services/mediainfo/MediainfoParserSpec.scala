@@ -8,14 +8,11 @@ class MediainfoParserSpec extends Specification {
 
 
   "can parse track information from mediainfo XML output" in {
+    val mediainfoOutput = scala.io.Source.fromFile("test/resources/mediainfo.xml").mkString
 
-    val mediainfoOutput: File = new File("test/resources/mediainfo.xml")
+    val tracks = MediainfoParser.parse(mediainfoOutput)
 
-
-    1 must equalTo(2)
-    //val tracks = MediainfoParser.parse(mediainfoOutput)
-
-    //tracks.size must equalTo(3)
+    tracks.size must equalTo(3)
   }
 
 }

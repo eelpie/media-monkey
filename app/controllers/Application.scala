@@ -90,7 +90,7 @@ object Application extends Controller {
           })
         })
 
-        Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2)).flatten).flatten
+        Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
       }
 
       val contentType: Option[String] = inferContentType(metadata)
