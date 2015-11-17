@@ -9,7 +9,7 @@ class MediainfoParser {
   def parse(mediainfo: String): Seq[Track] = {
 
     def parsePixels(t: Node): Int = {
-      t.text.stripSuffix(" pixels").toInt
+      t.text.stripSuffix(" pixels").replaceAll(" ", "").toInt
     }
 
     val xml: Elem = scala.xml.XML.loadString(mediainfo)
