@@ -10,10 +10,18 @@ class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def thumbnail(input: File, outputFormat: String): Option[File] = {
+  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int]): Option[File] = {
 
     val output: File = File.createTempFile("thumbnail", "." + outputFormat)
-    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+
+    val sizeParameters: Seq[String] = width.flatMap(w =>
+      height.map(h => {
+           Seq("-s", w + "x" + h)
+      })
+    ).fold(Seq[String]())(sp => sp)
+
+    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+    
     val process: Process = avconvCmd.run(logger)
     val exitValue: Int = process.exitValue() // Blocks until the process completes
 

@@ -17,7 +17,7 @@ object Application extends Controller {
   val ApplicationJsonHeader = CONTENT_TYPE -> ("application/json")
 
   case class OutputFormat(mineType: String, fileExtension: String)
-  val supportedImageOutputFormats = Seq(OutputFormat("image/gif", "gif"), OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
+  val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"))
 
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
@@ -136,10 +136,10 @@ object Application extends Controller {
     })
   }
 
-  def videoThumbnail() = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoThumbnail(width: Option[Int], height: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = videoService.thumbnail(request.body.file, of.fileExtension)
+      val result = videoService.thumbnail(request.body.file, of.fileExtension, width, height)
       result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
         Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
       })

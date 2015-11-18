@@ -25,6 +25,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
       (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
       (jsonMeta \ "height").toOption.get.as[Int] must equalTo(600)
     }
@@ -70,13 +71,30 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can thumbnail videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/thumbnail").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = WS.url(localUrl + "/video/thumbnail").
+        withHeaders(("Accept" -> "image/jpeg")).
+        post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
+    }
+  }
+
+  "video thumbnail size can be specified" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/video/thumbnail?width=120&height=100").
+        withHeaders(("Accept" -> "image/jpeg")).
+        post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(120)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(100)
     }
   }
 
