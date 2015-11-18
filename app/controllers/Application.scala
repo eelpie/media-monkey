@@ -17,7 +17,7 @@ object Application extends Controller {
   val ApplicationJsonHeader = CONTENT_TYPE -> ("application/json")
 
   case class OutputFormat(mineType: String, fileExtension: String)
-  val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
+  val supportedImageOutputFormats = Seq(OutputFormat("image/gif", "gif"), OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"))
 
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
