@@ -32,7 +32,7 @@ object Application extends Controller {
     val recognisedImageTypes = supportedImageOutputFormats
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
 
-    def inferAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
+    def inferContentTypeSpecificAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
 
       def inferContentType(md: Map[String, String]): Option[String] = {
         md.get("Content-Type").flatMap(ct => {
@@ -109,8 +109,8 @@ object Application extends Controller {
 
     val sourceFile = request.body
     tikaService.meta(sourceFile.file).fold({
-      sourceFile.clean()
       InternalServerError("Could not process metadata")
+
     }) (md => {
       implicit val writes = new Writes[Map[String, Any]] {
         override def writes(o: Map[String, Any]): JsValue = {
@@ -127,8 +127,11 @@ object Application extends Controller {
         }
       }
 
+      val contentTypeSpecificAttributes = inferContentTypeSpecificAttributes(md, request.body.file)
+
       sourceFile.clean()
-      Ok(Json.toJson(md ++ inferAttributes(md, request.body.file)))
+
+      Ok(Json.toJson(md ++ contentTypeSpecificAttributes))
     })
   }
 
