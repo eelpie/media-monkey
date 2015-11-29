@@ -142,19 +142,20 @@ object Application extends Controller {
       val result = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
       sourceFile.clean()
 
-      Ok.sendFile(result).withHeaders(CONTENT_TYPE -> of.mineType)  // TOOD result file is never teared down?
+      Ok.sendFile(result, onClose = () => {result.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
     })
   }
 
   def videoThumbnail(width: Option[Int], height: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
-
+    
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
       val sourceFile = request.body
       val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
-      result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
-        sourceFile.clean()
-        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
-      })
+      sourceFile.clean()
+
+      result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) (o =>
+        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+      )
     })
   }
 
@@ -165,9 +166,9 @@ object Application extends Controller {
       val result = videoService.transcode(sourceFile.file, of.fileExtension)
       sourceFile.clean()
 
-      result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
-        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType) // TOOD result file is never teared down?
-      })
+      result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o =>
+        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+      )
     })
   }
 
