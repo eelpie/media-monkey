@@ -107,8 +107,11 @@ object Application extends Controller {
       (contentTypeSpecificAttributes ++ contentType.map(ct => Seq(("type" -> ct)))).flatten.toMap
     }
 
-    tikaService.meta(request.body.file).fold(InternalServerError("Could not process metadata"))(md => {
-
+    val sourceFile = request.body
+    tikaService.meta(sourceFile.file).fold({
+      sourceFile.clean()
+      InternalServerError("Could not process metadata")
+    }) (md => {
       implicit val writes = new Writes[Map[String, Any]] {
         override def writes(o: Map[String, Any]): JsValue = {
           val map = o.map(i => {
@@ -124,6 +127,7 @@ object Application extends Controller {
         }
       }
 
+      sourceFile.clean()
       Ok(Json.toJson(md ++ inferAttributes(md, request.body.file)))
     })
   }
@@ -131,16 +135,21 @@ object Application extends Controller {
   def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
-      Ok.sendFile(result).withHeaders(CONTENT_TYPE -> of.mineType)
+      val sourceFile = request.body
+      val result = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
+      sourceFile.clean()
+
+      Ok.sendFile(result).withHeaders(CONTENT_TYPE -> of.mineType)  // TOOD result file is never teared down?
     })
   }
 
   def videoThumbnail(width: Option[Int], height: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = videoService.thumbnail(request.body.file, of.fileExtension, width, height)
+      val sourceFile = request.body
+      val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
       result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed")))(o => {
+        sourceFile.clean()
         Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
       })
     })
@@ -149,9 +158,12 @@ object Application extends Controller {
   def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = videoService.transcode(request.body.file, of.fileExtension)
+      val sourceFile = request.body
+      val result = videoService.transcode(sourceFile.file, of.fileExtension)
+      sourceFile.clean()
+
       result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o => {
-        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType)
+        Ok.sendFile(o).withHeaders(CONTENT_TYPE -> of.mineType) // TOOD result file is never teared down?
       })
     })
   }
