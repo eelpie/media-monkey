@@ -6,11 +6,14 @@ import java.io.File
 import model.Track
 import play.api.Logger
 import play.api.libs.json._
+import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
 import services.video.VideoService
+import play.api.Play.current
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Application extends Controller {
 
@@ -143,6 +146,23 @@ object Application extends Controller {
       sourceFile.clean()
 
       Ok.sendFile(result, onClose = () => {result.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+    })
+  }
+
+
+  def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
+
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
+      val result = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
+      request.body.clean()
+
+      // TODO validate callback url
+      WS.url(callback).post(result).map{ r =>
+        Logger.info("Response from callback url " + callback + ": " + r.status)
+        result.delete()
+      }
+
+      Accepted(Json.toJson("Accepted"))
     })
   }
 

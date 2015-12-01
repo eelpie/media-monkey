@@ -1,6 +1,9 @@
 #Media Monkey
 
-Multi media file wrangling.
+Multi media file wrangling microservice.
+
+Wraps the Tiki, ImageMagik, avconv and mediainfo tools with an HTTP/JSON interface.
+
 
 ###POST /meta
 
@@ -11,9 +14,12 @@ The media file should be sent as raw bytes on the request body.
 ###POST /scale
 
 width, height, rotate
+Accepts header
 
-Scale the posted image and return it as a JPEG.
+Scale the posted image and return it as a GIF, JPEG or PNG.
+
 The image file should be sent as raw bytes on the request body.
+The desired return image format should be specified using the Accepts header on the request.
 
 
 ####POST /video/thumbnail
@@ -24,11 +30,10 @@ The image file should be sent as raw bytes on the request body.
 
 ###POST /scale/callback
 
-[(widget, height, rotate)] callback
+widget, height, rotate, callback
 
-Scale the posted image into a set of scaled JPEG files.
-Call the calling application on the supplied callback url upon completion.
-Retain the processed media files locally for a specified amount of time to
-allow the calling application to act on the callback.
+Asynchronous version of the scale endpoint.
+
+Scales the the posted image then HTTP POSTs the result back to the url specified in the callback parameter.
 
 
