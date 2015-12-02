@@ -157,6 +157,7 @@ object Application extends Controller {
       request.body.clean()
 
       // TODO validate callback url
+      Logger.info("Calling back to: " + callback)
       WS.url(callback).post(result).map{ r =>
         Logger.info("Response from callback url " + callback + ": " + r.status)
         result.delete()

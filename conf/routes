@@ -1,7 +1,7 @@
 POST        /meta		controllers.Application.meta
 
 POST        /scale      controllers.Application.scale(width: Int, height: Int, rotate: Double)
-POST        /scale      controllers.Application.scaleCallback(width: Int, height: Int, rotate: Double, callback: String)
+POST        /scale/callback      controllers.Application.scaleCallback(width: Int, height: Int, rotate: Double, callback: String)
 
 POST        /video/thumbnail  controllers.Application.videoThumbnail(width: Option[Int], height: Option[Int])
 POST        /video/transcode  controllers.Application.videoTranscode
