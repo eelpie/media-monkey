@@ -6,6 +6,8 @@ lazy val `untitled1` = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.11.7"
 
+resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
+
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
 libraryDependencies += "com.typesafe.play" %% "anorm" % "2.4.0"
