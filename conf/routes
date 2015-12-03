@@ -5,3 +5,5 @@ POST        /scale/callback      controllers.Application.scaleCallback(width: In
 
 POST        /video/thumbnail  controllers.Application.videoThumbnail(width: Option[Int], height: Option[Int])
 POST        /video/transcode  controllers.Application.videoTranscode
+
+POST        /video/transcode/callback  controllers.Application.videoTranscodeCallback
