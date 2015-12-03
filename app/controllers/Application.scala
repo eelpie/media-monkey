@@ -38,7 +38,7 @@ object Application extends Controller {
     def inferContentTypeSpecificAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
 
       def inferContentType(md: Map[String, String]): Option[String] = {
-        md.get("Content-Type").flatMap(ct => {
+        md.get(CONTENT_TYPE).flatMap(ct => {
           if (recognisedImageTypes.exists(it => it.mineType == ct)) {
             Some("image")
           } else if (recognisedVideoTypes.exists(vt => vt.mineType == ct)) {
@@ -158,9 +158,11 @@ object Application extends Controller {
 
       // TODO validate callback url
       Logger.info("Calling back to: " + callback)
-      WS.url(callback).post(result).map{ r =>
-        Logger.info("Response from callback url " + callback + ": " + r.status)
-        result.delete()
+      WS.url(callback).
+        withHeaders((CONTENT_TYPE, of.mineType)).
+        post(result).map{ r =>
+	        Logger.info("Response from callback url " + callback + ": " + r.status)
+        	result.delete()
       }
 
       Accepted(Json.toJson("Accepted"))
