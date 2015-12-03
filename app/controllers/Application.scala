@@ -169,6 +169,27 @@ object Application extends Controller {
     })
   }
 
+  def videoTranscodeCallback(callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
+
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
+      val result = videoService.transcode(request.body.file, of.fileExtension)
+      request.body.clean()
+
+      result.map { vr =>
+        // TODO validate callback url
+        Logger.info("Calling back to: " + callback)
+        WS.url(callback).
+          withHeaders((CONTENT_TYPE, of.mineType)).
+          post(vr).map { r =>
+           Logger.info("Response from callback url " + callback + ": " + r.status)
+            vr.delete()
+        }
+      }
+
+      Accepted(Json.toJson("Accepted"))
+    })
+  }
+
   def videoThumbnail(width: Option[Int], height: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
     
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
