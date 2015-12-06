@@ -200,7 +200,7 @@ object Application extends Controller {
     })
   }
 
-  def videoThumbnail(width: Option[Int], height: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoThumbnail(width: Int, height: Int) = Action(BodyParsers.parse.temporaryFile) { request =>
     
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
       val sourceFile = request.body
@@ -216,7 +216,7 @@ object Application extends Controller {
     })
   }
 
-  def videoThumbnailCallback(width: Option[Int], height: Option[Int], callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoThumbnailCallback(width: Int, height: Int, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
       val result = videoService.thumbnail(request.body.file, of.fileExtension, width, height) // TODO width and height optionals should have been resolved by this point
