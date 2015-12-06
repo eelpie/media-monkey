@@ -5,6 +5,7 @@ import java.io.File
 
 import model.Track
 import play.api.Logger
+import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller}
@@ -12,8 +13,9 @@ import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
 import services.video.VideoService
-import play.api.Play.current
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object Application extends Controller {
 
@@ -138,42 +140,48 @@ object Application extends Controller {
     })
   }
 
-  def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action(BodyParsers.parse.temporaryFile) { request =>
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
+  def scale(width: Int = 800, height: Int = 600, rotate: Double = 0) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))){ of =>
       val sourceFile = request.body
-      val result = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
-      sourceFile.clean()
+      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
 
-      val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
-      val imageHeightHeader = ("X-Height", height.toString)
+      eventualResult.map { result =>
+        sourceFile.clean()
 
-      Ok.sendFile(result, onClose = () => {result.delete()}).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
-    })
-  }
+        val imageWidthHeader = ("X-Width", width.toString) // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", height.toString)
 
-  def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
-      request.body.clean()
-
-      // TODO validate callback url
-      Logger.info("Calling back to: " + callback)
-
-      val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
-      val imageHeightHeader = ("X-Height", height.toString)
-
-      WS.url(callback).
-        withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
-        post(result).map{ r =>
-	        Logger.info("Response from callback url " + callback + ": " + r.status)
-        	result.delete()
+        Ok.sendFile(result, onClose = () => {
+          result.delete()
+        }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
       }
-
-      Accepted(Json.toJson("Accepted"))
-    })
+    }
   }
+
+  def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+      val eventualResult = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
+
+      eventualResult.map { result =>
+        request.body.clean()
+
+        // TODO validate callback url
+        Logger.info("Calling back to: " + callback)
+
+        val imageWidthHeader = ("X-Width", width.toString) // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", height.toString)
+
+        WS.url(callback).
+          withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
+          post(result).map { r =>
+          Logger.info("Response from callback url " + callback + ": " + r.status)
+          result.delete()
+        }
+
+        Accepted(Json.toJson("Accepted"))
+      }
+    }}
 
   def videoTranscodeCallback(callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
