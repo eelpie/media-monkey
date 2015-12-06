@@ -184,8 +184,12 @@ object Application extends Controller {
       result.map { vr =>
         // TODO validate callback url
         Logger.info("Calling back to: " + callback)
+
+        val imageWidthHeader = ("X-Width", 320.toString)  // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", 200.toString)
+
         WS.url(callback).
-          withHeaders((CONTENT_TYPE, of.mineType)).
+          withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
           post(vr).map { r =>
            Logger.info("Response from callback url " + callback + ": " + r.status)
             vr.delete()
@@ -218,8 +222,12 @@ object Application extends Controller {
       result.map { vr =>
         // TODO validate callback url
         Logger.info("Calling back to: " + callback)
+
+        val imageWidthHeader = ("X-Width", 320.toString)  // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", 200.toString)
+
         WS.url(callback).
-          withHeaders((CONTENT_TYPE, of.mineType)).
+          withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
           post(vr).map { r =>
           Logger.info("Response from callback url " + callback + ": " + r.status)
           vr.delete()
