@@ -163,15 +163,12 @@ object Application extends Controller {
 
     val start = DateTime.now
 
-    val queuedImage: File = File.createTempFile("image", "." + "queued")
-    request.body.moveTo(queuedImage)
-    request.body.clean()
-
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
-      val eventualResult = imageService.resizeImage(queuedImage, width, height, rotate, of.fileExtension) // TODO no error handling
+      val eventualResult = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
 
       eventualResult.flatMap { result =>
+        request.body.clean()
 
         // TODO validate callback url
         Logger.info("Calling back to: " + callback)

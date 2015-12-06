@@ -36,7 +36,6 @@ class ImageService {
         val cmd: ConvertCmd = new ConvertCmd()
         cmd.run(imResizeOperation(width, height, rotate), input.getAbsolutePath, output.getAbsolutePath())
         Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
-        input.delete()
         output
 
       } catch {
