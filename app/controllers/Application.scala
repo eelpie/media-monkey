@@ -161,6 +161,7 @@ object Application extends Controller {
   def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+
       val eventualResult = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
 
       eventualResult.map { result =>
@@ -179,9 +180,11 @@ object Application extends Controller {
           result.delete()
         }
 
-        Accepted(Json.toJson("Accepted"))
       }
-    }}
+      Future.successful(Accepted(Json.toJson("Accepted")))
+    }
+
+  }
 
   def videoTranscodeCallback(callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
