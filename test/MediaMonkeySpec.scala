@@ -45,6 +45,19 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "scaled image dimensions should be returned as headers" in {
+    running(TestServer(port)) {
+      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+        withHeaders(("Accept" -> "image/png")).
+        post(new File("test/resources/IMG_9758.JPG"))
+
+      val response = Await.result(eventualScalingResponse, tenSeconds)
+
+      response.header("X-Width").get.toInt must equalTo(800)
+      response.header("X-Height").get.toInt must equalTo(600)
+    }
+  }
+
   "unknown image output formats should result in a 400 response" in {
     running(TestServer(port)) {
       val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").

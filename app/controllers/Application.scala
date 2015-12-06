@@ -145,10 +145,12 @@ object Application extends Controller {
       val result = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
       sourceFile.clean()
 
-      Ok.sendFile(result, onClose = () => {result.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+      val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
+      val imageHeightHeader = ("X-Height", height.toString)
+
+      Ok.sendFile(result, onClose = () => {result.delete()}).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
     })
   }
-
 
   def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
@@ -158,8 +160,12 @@ object Application extends Controller {
 
       // TODO validate callback url
       Logger.info("Calling back to: " + callback)
+
+      val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
+      val imageHeightHeader = ("X-Height", height.toString)
+
       WS.url(callback).
-        withHeaders((CONTENT_TYPE, of.mineType)).
+        withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
         post(result).map{ r =>
 	        Logger.info("Response from callback url " + callback + ": " + r.status)
         	result.delete()
