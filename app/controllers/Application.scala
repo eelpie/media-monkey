@@ -33,7 +33,7 @@ object Application extends Controller {
   val imageService = ImageService
   val videoService = VideoService
 
-  def meta = Action(BodyParsers.parse.temporaryFile) { request =>
+  def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     val recognisedImageTypes = supportedImageOutputFormats
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
@@ -115,7 +115,7 @@ object Application extends Controller {
 
     val sourceFile = request.body
     tikaService.meta(sourceFile.file).fold({
-      InternalServerError("Could not process metadata")
+      Future.successful(InternalServerError("Could not process metadata"))
 
     }) (md => {
       implicit val writes = new Writes[Map[String, Any]] {
@@ -137,7 +137,7 @@ object Application extends Controller {
 
       sourceFile.clean()
 
-      Ok(Json.toJson(md ++ contentTypeSpecificAttributes))
+      Future.successful(Ok(Json.toJson(md ++ contentTypeSpecificAttributes)))
     })
   }
 
