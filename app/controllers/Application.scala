@@ -4,6 +4,7 @@ package controllers
 import java.io.File
 
 import model.Track
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
@@ -160,11 +161,13 @@ object Application extends Controller {
 
   def scaleCallback(width: Int = 800, height: Int = 600, rotate: Double = 0, callback: String) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
+    val start = DateTime.now
+
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val eventualResult = imageService.resizeImage(request.body.file, width, height, rotate, of.fileExtension) // TODO no error handling
 
-      eventualResult.map { result =>
+      eventualResult.flatMap { result =>
         request.body.clean()
 
         // TODO validate callback url
@@ -181,7 +184,14 @@ object Application extends Controller {
         }
 
       }
-      Future.successful(Accepted(Json.toJson("Accepted")))
+
+      Future.successful(Accepted(Json.toJson("Accepted"))).map{r =>
+        val duration = DateTime.now.getMillis - start.getMillis
+        Logger.info("Returning accepted after: " + duration)
+        r
+      }
+
+
     }
 
   }
