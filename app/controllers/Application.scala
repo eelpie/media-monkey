@@ -207,8 +207,11 @@ object Application extends Controller {
       val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
       sourceFile.clean()
 
+      val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
+      val imageHeightHeader = ("X-Height", height.toString)
+
       result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) (o =>
-        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
       )
     })
   }
@@ -223,8 +226,8 @@ object Application extends Controller {
         // TODO validate callback url
         Logger.info("Calling back to: " + callback)
 
-        val imageWidthHeader = ("X-Width", 320.toString)  // TODO actual output dimensions may differ
-        val imageHeightHeader = ("X-Height", 200.toString)
+        val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", height.toString)
 
         WS.url(callback).
           withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
@@ -246,8 +249,11 @@ object Application extends Controller {
       val result = videoService.transcode(sourceFile.file, of.fileExtension)
       sourceFile.clean()
 
+      val imageWidthHeader = ("X-Width", 320.toString)  // TODO actual output dimensions may differ
+      val imageHeightHeader = ("X-Height", 200.toString)
+
       result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o =>
-        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType)
+        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
       )
     })
   }
