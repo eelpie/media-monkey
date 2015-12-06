@@ -84,7 +84,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can thumbnail videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/thumbnail").
+      val eventualResponse = WS.url(localUrl + "/video/thumbnail?width=320&height=200").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
 
