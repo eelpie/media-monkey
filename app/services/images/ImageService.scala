@@ -27,14 +27,24 @@ class ImageService {
       op.addImage()
       op
     }
-    
+
     Future {
       val output: File = File.createTempFile("image", "." + outputFormat)
       Logger.info("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
-      val cmd: ConvertCmd = new ConvertCmd()
-      cmd.run(imResizeOperation(width, height, rotate), input.getAbsolutePath, output.getAbsolutePath())
-      Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
-      output
+
+      try {
+        val cmd: ConvertCmd = new ConvertCmd()
+        cmd.run(imResizeOperation(width, height, rotate), input.getAbsolutePath, output.getAbsolutePath())
+        Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
+        output
+
+      } catch {
+        case e: Exception => {
+          Logger.error("Exception while executing IM operation", e)
+          output.delete()
+          throw e
+        }
+      }
     }
 
   }
