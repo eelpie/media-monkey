@@ -134,6 +134,7 @@ object Application extends Controller {
       }
 
       val contentTypeSpecificAttributes = inferContentTypeSpecificAttributes(md, request.body.file)
+
       sourceFile.clean()
 
       Future.successful(Ok(Json.toJson(md ++ contentTypeSpecificAttributes)))
@@ -163,7 +164,7 @@ object Application extends Controller {
     val start = DateTime.now
 
     val queuedImage: File = File.createTempFile("image", "." + "queued")
-    request.body.copy(queuedImage)
+    request.body.moveTo(queuedImage)
     request.body.clean()
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
