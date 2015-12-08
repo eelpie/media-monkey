@@ -14,21 +14,14 @@ The media file should be sent as raw bytes on the request body.
 ###POST /scale
 
 width, height, rotate
+callback
 Accepts header
 
 Scale the posted image and return it as a GIF, JPEG or PNG.
+If a callback url as provided the service will return HTTP 202 Accepted and POST the processed media file back to your callback address at a later date.
 
 The image file should be sent as raw bytes on the request body.
 The desired return image format should be specified using the Accepts header on the request.
-
-
-###POST /scale/callback
-
-widget, height, rotate, callback
-
-Asynchronous version of the scale endpoint.
-
-Scales the the posted image then HTTP POSTs the result back to the url specified in the callback parameter.
 
 
 ####POST /video/thumbnail
