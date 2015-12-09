@@ -173,12 +173,12 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(callback: Option[String]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)){ of =>
 
       val width = 320 // TODO push to parameters
-    val height = 200
+      val height = 200
 
       if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
