@@ -24,7 +24,7 @@ object Application extends Controller {
 
   case class OutputFormat(mineType: String, fileExtension: String)
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"))
-  val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"))
+  val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
 
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
@@ -173,12 +173,12 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode(callback: Option[String]) = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)){ of =>
 
-      val width = 320 // TODO push to parameters
-      val height = 200
+      val width = w.getOrElse(320)
+      val height = h.getOrElse(200)
 
       if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
