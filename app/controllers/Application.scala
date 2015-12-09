@@ -173,6 +173,45 @@ object Application extends Controller {
     }
   }
 
+  def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
+
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)){ of =>
+
+      val width = 320 // TODO push to parameters
+    val height = 200
+
+      if (of.mineType.startsWith("image/")) {
+        val sourceFile = request.body
+        val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
+        sourceFile.clean()
+
+        val imageWidthHeader = ("X-Width", width.toString)  // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", height.toString)
+
+        result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) (o =>
+          Ok.sendFile(o, onClose = () => {o.delete()}).
+            withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+        )
+
+      } else {
+
+        val sourceFile = request.body
+        val result = videoService.transcode(sourceFile.file, of.fileExtension)
+        sourceFile.clean()
+
+        val imageWidthHeader = ("X-Width", width.toString) // TODO actual output dimensions may differ
+        val imageHeightHeader = ("X-Height", height.toString)
+
+        result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o =>
+          Ok.sendFile(o, onClose = () => {
+            o.delete()
+          }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+        )
+      }
+    }
+  }
+
+  @Deprecated
   def videoTranscodeCallback(callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
@@ -198,6 +237,7 @@ object Application extends Controller {
     })
   }
 
+  @Deprecated
   def videoThumbnail(width: Int, height: Int) = Action(BodyParsers.parse.temporaryFile) { request =>
     
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
@@ -214,6 +254,7 @@ object Application extends Controller {
     })
   }
 
+  @Deprecated
   def videoThumbnailCallback(width: Int, height: Int, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
@@ -236,23 +277,6 @@ object Application extends Controller {
       }
 
       Accepted(Json.toJson("Accepted"))
-    })
-  }
-
-
-  def videoTranscode() = Action(BodyParsers.parse.temporaryFile) { request =>
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val sourceFile = request.body
-      val result = videoService.transcode(sourceFile.file, of.fileExtension)
-      sourceFile.clean()
-
-      val imageWidthHeader = ("X-Width", 320.toString)  // TODO actual output dimensions may differ
-      val imageHeightHeader = ("X-Height", 200.toString)
-
-      result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o =>
-        Ok.sendFile(o, onClose = () => {o.delete()}).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
-      )
     })
   }
 
