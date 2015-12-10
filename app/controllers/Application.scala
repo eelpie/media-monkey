@@ -4,12 +4,11 @@ package controllers
 import java.io.File
 
 import model.Track
-import org.joda.time.DateTime
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.api.mvc.{Result, Action, BodyParsers, Controller}
+import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
@@ -82,20 +81,34 @@ object Application extends Controller {
       }
 
       def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
+
+        def parsePixels(i: String): Int = {
+         i.stripSuffix(" pixels").replaceAll(" ", "").toInt
+        }
+
         val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
         Logger.info("mediainfo for video: " + mediainfoTracks)
 
         val videoTrackDimensions: Option[(Int, Int)] = mediainfoTracks.flatMap(mi => {
-          mi.find(t => t.trackType == "Video").headOption.flatMap(v => {
-            v.width.flatMap(w =>
-              v.height.map(h =>
-                (w, h)
+          mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
+            vt.fields.get("Width").flatMap(w =>
+              vt.fields.get("Height").map(h =>
+                (parsePixels(w), parsePixels(h))
               )
             )
-          })
+          }
         })
 
-        Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
+        val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
+          ts.map { t =>
+            t.fields.toSeq
+          }.flatten
+        }
+
+        val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
+        val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
+
+        combinedTrackFields ++ dimensionFields
       }
 
       val contentType: Option[String] = inferContentType(metadata)

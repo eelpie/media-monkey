@@ -2,25 +2,21 @@ package services.mediainfo
 
 import model.Track
 
-import scala.xml.{Elem, Node, NodeSeq}
+import scala.xml.Elem
 
 class MediainfoParser {
 
   def parse(mediainfo: String): Seq[Track] = {
-
-    def parsePixels(t: Node): Int = {
-      t.text.stripSuffix(" pixels").replaceAll(" ", "").toInt
-    }
-
     val xml: Elem = scala.xml.XML.loadString(mediainfo)
+    xml.\\("track").map{ t =>
 
-    val tracks: NodeSeq = xml.\\("track")
-    tracks.map(t => {
       val trackType = t \@ "type"
-      val w = (t \ "Width").headOption.map(t => parsePixels(t))
-      val h = (t \ "Height").headOption.map(t => parsePixels(t))
-      Track(trackType, w, h)
-    })
+      val fields = t.nonEmptyChildren.map { c =>
+        (c.label, c.text)
+      }.toMap
+
+      Track(trackType, fields)
+    }
   }
 
 }

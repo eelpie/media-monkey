@@ -130,7 +130,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
-      val expectedVideoMetadataField = (Json.parse(response.body) \ "Content-Type").toOption
+      val expectedVideoMetadataField = (Json.parse(response.body) \ "Display_aspect_ratio").toOption
 
       expectedVideoMetadataField.get must equalTo("16:9")
     }

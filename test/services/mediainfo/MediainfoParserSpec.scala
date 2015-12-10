@@ -10,7 +10,8 @@ class MediainfoParserSpec extends Specification {
     val tracks = MediainfoParser.parse(mediainfoOutput)
 
     tracks.size must equalTo(3)
-    tracks.seq(1).width.get must equalTo(1920)
+    tracks.seq(1).trackType must equalTo("Video")
+    tracks.seq(1).fields.get("Width").get must equalTo("1 920 pixels")
   }
 
 }
