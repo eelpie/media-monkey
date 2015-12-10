@@ -125,6 +125,17 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "video metadata should include mediainfo data" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+      val expectedVideoMetadataField = (Json.parse(response.body) \ "Content-Type").toOption
+
+      expectedVideoMetadataField.get must equalTo("16:9")
+    }
+  }
+
   "video output format can be specified via the Accept header" in {
     running(TestServer(port)) {
       val eventualTranscodingResponse = WS.url(localUrl + "/video/transcode").
