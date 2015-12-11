@@ -167,8 +167,6 @@ object Application extends Controller {
         val imageHeightHeader = ("X-Height", height.toString)
 
         callback.fold {
-          Logger.info("No callback url seen; returning result on response")
-
           Ok.sendFile(result, onClose = () => {result.delete()}).
             withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
 
