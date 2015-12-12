@@ -132,7 +132,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val response = Await.result(eventualResponse, tenSeconds)
       val expectedVideoMetadataField = (Json.parse(response.body) \ "Display_aspect_ratio").toOption
 
-      expectedVideoMetadataField.get must equalTo("16:9")
+      expectedVideoMetadataField.get.as[String] must equalTo("16:9")
     }
   }
 
