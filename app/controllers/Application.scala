@@ -85,16 +85,15 @@ object Application extends Controller {
         def parsePixels(i: String): Int = {
          i.stripSuffix(" pixels").replaceAll(" ", "").toInt
         }
-        
+
         def parseRotation(r: String): Int = {
           r.replaceAll("[^\\d]", "").toInt
         }
 
         val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
-        Logger.info("mediainfo for video: " + mediainfoTracks)
 
-
-        val mediainfoRotation: Option[String] = metadata.get("Rotation")
+        val mediainfoRotation: Option[String] = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "video").flatMap(i => i.fields.get("Rotation")))
+        Logger.debug("Mediainfo video rotation: " + mediainfoRotation)
         val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
 
         val videoTrackDimensions: Option[(Int, Int)] = mediainfoTracks.flatMap(mi => {
