@@ -95,4 +95,26 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "video metadata should include mediainfo data" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+      val aspectRatioField = (Json.parse(response.body) \ "Display_aspect_ratio").toOption
+
+      aspectRatioField.get.as[String] must equalTo("16:9")
+    }
+  }
+
+  "video metadata should include inferred rotation" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+      val rotationField = (Json.parse(response.body) \ "rotation").toOption
+
+      rotationField.get.as[Int] must equalTo(90)
+    }
+  }
+
 }

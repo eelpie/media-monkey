@@ -85,9 +85,17 @@ object Application extends Controller {
         def parsePixels(i: String): Int = {
          i.stripSuffix(" pixels").replaceAll(" ", "").toInt
         }
+        
+        def parseRotation(r: String): Int = {
+          r.replaceAll("[^\\d]", "").toInt
+        }
 
         val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
         Logger.info("mediainfo for video: " + mediainfoTracks)
+
+
+        val mediainfoRotation: Option[String] = metadata.get("Rotation")
+        val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
 
         val videoTrackDimensions: Option[(Int, Int)] = mediainfoTracks.flatMap(mi => {
           mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
@@ -108,7 +116,7 @@ object Application extends Controller {
         val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
         val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
 
-        combinedTrackFields ++ dimensionFields
+        combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
       }
 
       val contentType: Option[String] = inferContentType(metadata)
