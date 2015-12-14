@@ -91,8 +91,9 @@ object Application extends Controller {
         }
 
         val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
+        Logger.info("Tracks: " + mediainfoTracks)
 
-        val mediainfoRotation: Option[String] = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "video").flatMap(i => i.fields.get("Rotation")))
+        val mediainfoRotation: Option[String] = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "Video").flatMap(i => i.fields.get("Rotation")))
         Logger.debug("Mediainfo video rotation: " + mediainfoRotation)
         val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
 
