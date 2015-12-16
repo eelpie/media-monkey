@@ -162,14 +162,15 @@ object Application extends Controller {
     })
   }
 
-  def scale(w: Option[Int], h: Option[Int], rotate: Double = 0, callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def scale(w: Option[Int], h: Option[Int], rotate: Double = 0, callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     val width = w.getOrElse(800)
     val height = h.getOrElse(600)
+    val fill = f.getOrElse(false)
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
-      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension) // TODO no error handling
+      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
 
       eventualResult.map { result =>
         sourceFile.clean()

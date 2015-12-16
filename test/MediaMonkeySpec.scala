@@ -17,7 +17,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
   val tenSeconds = Duration(10, SECONDS)
   val thirtySeconds = Duration(30, SECONDS)
 
-  "can scale image" in {
+
+
+  "can scale image to fit box along longest axis" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
@@ -27,7 +29,49 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
       (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(533)
+    }
+  }
+
+  "can scale and crop image to fill box" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
       (jsonMeta \ "height").toOption.get.as[Int] must equalTo(600)
+    }
+  }
+
+  "can scale portrait image to fit box along longest axis" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0").post(new File("test/resources/IMG_9803.JPG"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(533)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(800)
+    }
+  }
+
+  "can scale and crop portrait image to fill box" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0&fill=true").post(new File("test/resources/IMG_9803.JPG"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonMeta = metadataForResponse(response)
+      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(600)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(800)
     }
   }
 

@@ -13,7 +13,7 @@ The media file should be sent as raw bytes on the request body.
 
 ###POST /scale
 
-width, height, rotate
+width, height, rotate, fill
 callback
 Accepts header
 

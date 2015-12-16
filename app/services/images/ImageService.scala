@@ -11,21 +11,33 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ImageService {
 
-  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String): Future[File] = {
+  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[File] = {
 
     implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
-    def imResizeOperation(width: Int, height: Int, rotate: Double): IMOperation = {
-      val op: IMOperation = new IMOperation()
-      op.addImage()
-      op.autoOrient()
-      op.rotate(rotate)
-      op.resize(width, height, "^")
-      op.gravity("Center")
-      op.crop(width, height, 0, 0)
-      op.strip()
-      op.addImage()
-      op
+    def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
+      if (fill) {
+        val op: IMOperation = new IMOperation()
+        op.addImage()
+        op.autoOrient()
+        op.rotate(rotate)
+        op.resize(width, height, "^")
+        op.gravity("Center")
+        op.extent(width, height)
+        op.strip()
+        op.addImage()
+        op
+
+      } else {
+        val op: IMOperation = new IMOperation()
+        op.addImage()
+        op.autoOrient()
+        op.rotate(rotate)
+        op.resize(width, height)
+        op.strip()
+        op.addImage()
+        op
+      }
     }
 
     Future {
@@ -34,7 +46,7 @@ class ImageService {
 
       try {
         val cmd: ConvertCmd = new ConvertCmd()
-        cmd.run(imResizeOperation(width, height, rotate), input.getAbsolutePath, output.getAbsolutePath())
+        cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, output.getAbsolutePath())
         Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
         output
 
