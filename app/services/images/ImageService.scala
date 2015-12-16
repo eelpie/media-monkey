@@ -2,7 +2,7 @@ package services.images
 
 import java.io.File
 
-import org.im4java.core.{ConvertCmd, IMOperation}
+import org.im4java.core.{Info, ConvertCmd, IMOperation}
 import play.api.Logger
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
@@ -10,6 +10,11 @@ import play.api.Play.current
 import scala.concurrent.{ExecutionContext, Future}
 
 class ImageService {
+
+  def info(input: File): (Int, Int) = {
+    val imageInfo: Info = new Info(input.getAbsolutePath, true)
+    (imageInfo.getImageWidth, imageInfo.getImageHeight)
+  }
 
   def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[File] = {
 
