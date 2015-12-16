@@ -173,10 +173,11 @@ object Application extends Controller {
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
 
       eventualResult.map { result =>
+        val outputDimensions = imageService.info(sourceFile.file)
         sourceFile.clean()
 
-        val imageWidthHeader = ("X-Width", width.toString) // TODO actual output dimensions may differ
-        val imageHeightHeader = ("X-Height", height.toString)
+        val imageWidthHeader = ("X-Width", outputDimensions._1.toString)
+        val imageHeightHeader = ("X-Height", outputDimensions._2.toString)
 
         callback.fold {
           Ok.sendFile(result, onClose = () => {result.delete()}).
