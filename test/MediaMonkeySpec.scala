@@ -33,7 +33,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale and crop image to fill box" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
@@ -41,7 +41,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
       (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(600)
+      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(533)
     }
   }
 
