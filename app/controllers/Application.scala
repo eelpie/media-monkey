@@ -271,8 +271,9 @@ object Application extends Controller {
         // TODO validate callback url
         Logger.info("Calling back to: " + callback)
 
-        val imageWidthHeader = (XWidth, width.toString)  // TODO actual output dimensions may differ
-        val imageHeightHeader = (XHeight, height.toString)
+        val outputDimensions = imageService.info(vr)
+        val imageWidthHeader = (XWidth, outputDimensions._1.toString)
+        val imageHeightHeader = (XHeight, outputDimensions._2.toString)
 
         WS.url(callback).
           withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
