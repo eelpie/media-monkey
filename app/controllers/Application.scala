@@ -1,4 +1,3 @@
-
 package controllers
 
 import java.io.File
@@ -90,14 +89,12 @@ object Application extends Controller {
           r.replaceAll("[^\\d]", "").toInt
         }
 
-        val mediainfoTracks: Option[Seq[Track]] = mediainfoService.mediainfo(file)
-        Logger.info("Tracks: " + mediainfoTracks)
+        val mediainfoTracks = mediainfoService.mediainfo(file)
 
-        val mediainfoRotation: Option[String] = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "Video").flatMap(i => i.fields.get("Rotation")))
-        Logger.debug("Mediainfo video rotation: " + mediainfoRotation)
+        val mediainfoRotation = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "Video").flatMap(i => i.fields.get("Rotation")))
         val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
 
-        val videoTrackDimensions: Option[(Int, Int)] = mediainfoTracks.flatMap(mi => {
+        val videoTrackDimensions = mediainfoTracks.flatMap(mi => {
           mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
             vt.fields.get("Width").flatMap(w =>
               vt.fields.get("Height").map(h =>
@@ -173,7 +170,7 @@ object Application extends Controller {
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
 
       eventualResult.map { result =>
-        val outputDimensions = imageService.info(sourceFile.file)
+        val outputDimensions = imageService.info(result)
         sourceFile.clean()
 
         val imageWidthHeader = ("X-Width", outputDimensions._1.toString)

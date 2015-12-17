@@ -46,13 +46,16 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
   }
 
   "scaled images should be returned with there dimensions available in the headers" in {
-    val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
+    running(TestServer(port)) {
 
-    val response = Await.result(eventualResponse, tenSeconds)
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
 
-    response.status must equalTo(OK)
-    response.header("X-width").get must equalTo(800)
-    response.header("X-height").get must equalTo(600)
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      response.header("X-width").get.toInt must equalTo(800)
+      response.header("X-height").get.toInt must equalTo(600)
+    }
   }
 
   "can scale portrait image to fit box along longest axis" in {
@@ -106,7 +109,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val response = Await.result(eventualScalingResponse, tenSeconds)
 
       response.header("X-Width").get.toInt must equalTo(800)
-      response.header("X-Height").get.toInt must equalTo(600)
+      response.header("X-Height").get.toInt must equalTo(533)
     }
   }
 
