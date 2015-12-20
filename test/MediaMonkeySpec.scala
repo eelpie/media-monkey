@@ -160,6 +160,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val response = Await.result(eventualResponse, tenSeconds)
 
       response.status must equalTo(OK)
+      response.header("X-Width").get.toInt must equalTo(120)
+      response.header("X-Height").get.toInt must equalTo(100)
+
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "width").toOption.get.as[Int] must equalTo(120)
       (jsonMeta \ "height").toOption.get.as[Int] must equalTo(100)

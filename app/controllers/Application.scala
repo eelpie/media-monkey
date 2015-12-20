@@ -172,9 +172,9 @@ object Application extends Controller {
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
 
       eventualResult.map { result =>
-        val outputDimensions = imageService.info(result)
         sourceFile.clean()
 
+        val outputDimensions = imageService.info(result)
         val imageWidthHeader = (XWidth, outputDimensions._1.toString)
         val imageHeightHeader = (XHeight, outputDimensions._2.toString)
 
@@ -198,7 +198,7 @@ object Application extends Controller {
 
   def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)){ of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)) { of =>
 
       val width = w.getOrElse(320)
       val height = h.getOrElse(200)
@@ -208,13 +208,16 @@ object Application extends Controller {
         val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
         sourceFile.clean()
 
-        val imageWidthHeader = (XWidth, width.toString)  // TODO actual output dimensions may differ
-        val imageHeightHeader = (XHeight, height.toString)
+        result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) { o =>
 
-        result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) (o =>
-          Ok.sendFile(o, onClose = () => {o.delete()}).
-            withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
-        )
+          val outputDimensions = imageService.info(o)
+          val imageWidthHeader = (XWidth, outputDimensions._1.toString)
+          val imageHeightHeader = (XHeight, outputDimensions._2.toString)
+
+          Ok.sendFile(o, onClose = () => {
+            o.delete()
+          }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+        }
 
       } else {
 
