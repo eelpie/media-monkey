@@ -11,14 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ImageService {
 
+  implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+
   def info(input: File): (Int, Int) = {
     val imageInfo: Info = new Info(input.getAbsolutePath, true)
     (imageInfo.getImageWidth, imageInfo.getImageHeight)
   }
 
   def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[File] = {
-
-    implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
     def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {

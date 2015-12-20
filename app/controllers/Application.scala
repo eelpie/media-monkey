@@ -7,7 +7,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.api.mvc.{Action, BodyParsers, Controller}
+import play.api.mvc.{Result, Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
@@ -157,7 +157,7 @@ object Application extends Controller {
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
-      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
+      val eventualResult: Future[File] = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
 
       eventualResult.map { result =>
         sourceFile.clean()
@@ -184,49 +184,55 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode(w: Option[Int], h: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(w: Option[Int], h: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)) { of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val width = w.getOrElse(320)
       val height = h.getOrElse(200)
 
       if (of.mineType.startsWith("image/")) {
+
         val sourceFile = request.body
-        val result = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
-        sourceFile.clean()
 
-        result.fold(InternalServerError(Json.toJson("Video could not be thumbnailed"))) { o =>
+        val result: Future[File] = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
 
-          val outputDimensions = imageService.info(o)
+        val withDimensions: Future[(File, (String, String), (String, String))] = result.map{ r =>
+          sourceFile.clean()
+          val outputDimensions = imageService.info(r)
           val imageWidthHeader = (XWidth, outputDimensions._1.toString)
           val imageHeightHeader = (XHeight, outputDimensions._2.toString)
+          (r, imageWidthHeader, imageHeightHeader)
+        }
 
-          Ok.sendFile(o, onClose = () => {
-            o.delete()
-          }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+        withDimensions.map { r =>
+          Ok.sendFile(r._1, onClose = () => {
+            r._1.delete()
+          }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
         }
 
       } else {
 
         val sourceFile = request.body
-        val result = videoService.transcode(sourceFile.file, of.fileExtension)
-        sourceFile.clean()
 
-        result.fold(InternalServerError(Json.toJson("Video could not be transcoded"))) { o =>
+        val result: Future[File] = videoService.transcode(sourceFile.file, of.fileExtension)
 
-          val outputDimensions: Option[(Int, Int)] = videoDimensions(mediainfoService.mediainfo(o))
+        val withDimensions = result.map { r =>
+          sourceFile.clean()
 
-          outputDimensions.fold(InternalServerError(Json.toJson("Output video could not be sized"))) { d =>
-            val imageWidthHeader = (XWidth, d._1.toString)
-            val imageHeightHeader = (XHeight, d._2.toString)
+          //val outputDimensions: Option[(Int, Int)] = videoDimensions(mediainfoService.mediainfo(r))
+          val imageWidthHeader = (XWidth, "320")  // TODO
+          val imageHeightHeader = (XHeight, "200") // TODO
+          (r, imageWidthHeader, imageHeightHeader)
+        }
 
-            Ok.sendFile(o, onClose = () => {
-              o.delete()
-            }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
-          }
+        withDimensions.map { r =>
+          Ok.sendFile(r._1, onClose = () => {
+            r._1.delete()
+          }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
         }
       }
+
     }
   }
 
@@ -244,59 +250,6 @@ object Application extends Controller {
           )
         )
       }
-    })
-  }
-
-  @Deprecated
-  def videoTranscodeCallback(callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = videoService.transcode(request.body.file, of.fileExtension)
-      request.body.clean()
-
-      result.map { vr =>
-        // TODO validate callback url
-        Logger.info("Calling back to: " + callback)
-
-        val imageWidthHeader = (XWidth, 320.toString)  // TODO actual output dimensions may differ
-        val imageHeightHeader = (XHeight, 200.toString)
-
-        WS.url(callback).
-          withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
-          post(vr).map { r =>
-           Logger.info("Response from callback url " + callback + ": " + r.status)
-            vr.delete()
-        }
-      }
-
-      Accepted(Json.toJson("Accepted"))
-    })
-  }
-  
-  @Deprecated
-  def videoThumbnailCallback(width: Int, height: Int, callback: String) = Action(BodyParsers.parse.temporaryFile) { request =>
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested))(of => {
-      val result = videoService.thumbnail(request.body.file, of.fileExtension, width, height) // TODO width and height optionals should have been resolved by this point
-      request.body.clean()
-
-      result.map { vr =>
-        // TODO validate callback url
-        Logger.info("Calling back to: " + callback)
-
-        val outputDimensions = imageService.info(vr)
-        val imageWidthHeader = (XWidth, outputDimensions._1.toString)
-        val imageHeightHeader = (XHeight, outputDimensions._2.toString)
-
-        WS.url(callback).
-          withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
-          post(vr).map { r =>
-          Logger.info("Response from callback url " + callback + ": " + r.status)
-          vr.delete()
-        }
-      }
-
-      Accepted(Json.toJson("Accepted"))
     })
   }
 

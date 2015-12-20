@@ -3,46 +3,56 @@ package services.video
 import java.io.File
 
 import play.api.Logger
+import play.api.libs.concurrent.Akka
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
+import play.api.Play.current
 
 class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def thumbnail(input: File, outputFormat: String, width: Int, height: Int): Option[File] = {
+  implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
-    val output: File = File.createTempFile("thumbnail", "." + outputFormat)
+  def thumbnail(input: File, outputFormat: String, width: Int, height: Int): Future[File] = {
 
-    val sizeParameters: Seq[String] = Seq("-s", width + "x" + height)
+    Future {
+      val output: File = File.createTempFile("thumbnail", "." + outputFormat)
 
-    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
-    
-    val process: Process = avconvCmd.run(logger)
-    val exitValue: Int = process.exitValue() // Blocks until the process completes
+      val sizeParameters: Seq[String] = Seq("-s", width + "x" + height)
 
-    if (exitValue == 0) {
-      Logger.info("Thumbnail output to: " + output.getAbsolutePath)
-      Some(output)
-    } else {
-      Logger.warn("avconv process failed")
-      None
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+
+      val process: Process = avconvCmd.run(logger)
+      val exitValue: Int = process.exitValue() // Blocks until the process completes
+
+      if (exitValue == 0) {
+        Logger.info("Thumbnail output to: " + output.getAbsolutePath)
+        output
+
+      } else {
+        Logger.warn("avconv process failed")
+        throw new RuntimeException("avconv process failed")
+      }
     }
   }
 
-  def transcode(input: File, outputFormat: String): Option[File] = {
+  def transcode(input: File, outputFormat: String): Future[File] = {
 
-    val output: File = File.createTempFile("transcoded", "." + outputFormat)
-    val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-strict", "experimental", output.getAbsolutePath)
-    val process: Process = avconvCmd.run(logger)
-    val exitValue: Int = process.exitValue() // Blocks until the process completes
+    Future {
+      val output: File = File.createTempFile("transcoded", "." + outputFormat)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-strict", "experimental", output.getAbsolutePath)
+      val process: Process = avconvCmd.run(logger)
+      val exitValue: Int = process.exitValue() // Blocks until the process completes
 
-    if (exitValue == 0) {
-      Logger.info("Transcoded video output to: " + output.getAbsolutePath)
-      Some(output)
-    } else {
-      Logger.warn("avconv process failed")
-      None
+      if (exitValue == 0) {
+        Logger.info("Transcoded video output to: " + output.getAbsolutePath)
+        output
+      } else {
+        Logger.warn("avconv process failed")
+        throw new RuntimeException("avconv process failed")
+      }
     }
   }
 
