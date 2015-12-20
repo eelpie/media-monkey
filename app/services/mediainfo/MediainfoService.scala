@@ -17,7 +17,6 @@ class MediainfoService {
 
     val out: StringBuilder = new StringBuilder()
     val logger: ProcessLogger = ProcessLogger(l => {
-      Logger.info("mediainfo: " + l)
       out.append(l)
     })
 
