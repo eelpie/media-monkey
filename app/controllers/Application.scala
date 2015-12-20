@@ -225,14 +225,16 @@ object Application extends Controller {
         val result = videoService.transcode(sourceFile.file, of.fileExtension)
         sourceFile.clean()
 
-        val imageWidthHeader = (XWidth, width.toString) // TODO actual output dimensions may differ
-        val imageHeightHeader = (XHeight, height.toString)
+        result.fold(InternalServerError(Json.toJson("Video could not be transcoded"))) { o =>
 
-        result.fold(InternalServerError(Json.toJson("Video could not be transcoded")))(o =>
+          val outputDimensions = videoService.info(o)
+          val imageWidthHeader = (XWidth, outputDimensions._1.toString)
+          val imageHeightHeader = (XHeight, outputDimensions._2.toString)
+          
           Ok.sendFile(o, onClose = () => {
             o.delete()
           }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
-        )
+        }
       }
     }
   }
