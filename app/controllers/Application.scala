@@ -83,10 +83,6 @@ object Application extends Controller {
 
       def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
 
-        def parsePixels(i: String): Int = {
-         i.stripSuffix(" pixels").replaceAll(" ", "").toInt
-        }
-
         def parseRotation(r: String): Int = {
           r.replaceAll("[^\\d]", "").toInt
         }
@@ -96,15 +92,7 @@ object Application extends Controller {
         val mediainfoRotation = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "Video").flatMap(i => i.fields.get("Rotation")))
         val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
 
-        val videoTrackDimensions = mediainfoTracks.flatMap(mi => {
-          mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
-            vt.fields.get("Width").flatMap(w =>
-              vt.fields.get("Height").map(h =>
-                (parsePixels(w), parsePixels(h))
-              )
-            )
-          }
-        })
+        val videoTrackDimensions = videoDimensions(mediainfoTracks)
 
         val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
           ts.map { t =>
@@ -196,7 +184,7 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(w: Option[Int], h: Option[Int]) = Action(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(BadRequest(UnsupportedOutputFormatRequested)) { of =>
 
@@ -227,16 +215,36 @@ object Application extends Controller {
 
         result.fold(InternalServerError(Json.toJson("Video could not be transcoded"))) { o =>
 
-          val outputDimensions = videoService.info(o)
-          val imageWidthHeader = (XWidth, outputDimensions._1.toString)
-          val imageHeightHeader = (XHeight, outputDimensions._2.toString)
-          
-          Ok.sendFile(o, onClose = () => {
-            o.delete()
-          }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+          val outputDimensions: Option[(Int, Int)] = videoDimensions(mediainfoService.mediainfo(o))
+
+          outputDimensions.fold(InternalServerError(Json.toJson("Output video could not be sized"))) { d =>
+            val imageWidthHeader = (XWidth, d._1.toString)
+            val imageHeightHeader = (XHeight, d._2.toString)
+
+            Ok.sendFile(o, onClose = () => {
+              o.delete()
+            }).withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+          }
         }
       }
     }
+  }
+
+  def videoDimensions(mediainfoTracks: Option[Seq[Track]]): Option[(Int, Int)] = {
+
+    def parsePixels(i: String): Int = {
+      i.stripSuffix(" pixels").replaceAll(" ", "").toInt
+    }
+
+    mediainfoTracks.flatMap(mi => {
+      mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
+        vt.fields.get("Width").flatMap(w =>
+          vt.fields.get("Height").map(h =>
+            (parsePixels(w), parsePixels(h))
+          )
+        )
+      }
+    })
   }
 
   @Deprecated

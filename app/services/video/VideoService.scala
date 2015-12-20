@@ -10,10 +10,6 @@ class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def info(maybeFile: File) = {
-    (320, 200)  // TODO implement
-  }
-
   def thumbnail(input: File, outputFormat: String, width: Int, height: Int): Option[File] = {
 
     val output: File = File.createTempFile("thumbnail", "." + outputFormat)
