@@ -171,13 +171,13 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can transcode videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?width=640&height=400").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = WS.url(localUrl + "/video/transcode?width=284&height=160").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
-      response.header("X-Width").get.toInt must equalTo(640)
-      response.header("X-Height").get.toInt must equalTo(400)
+      response.header("X-Width").get.toInt must equalTo(284)
+      response.header("X-Height").get.toInt must equalTo(160)
       (metadataForResponse(response) \ "Content-Type").toOption.get.as[String] must equalTo("video/theora")
     }
   }
