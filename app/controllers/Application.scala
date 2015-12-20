@@ -191,24 +191,18 @@ object Application extends Controller {
       val width = w.getOrElse(320)
       val height = h.getOrElse(200)
 
-      if (of.mineType.startsWith("image/")) {
+      val eventualResult: Future[(File, (String, String), (String, String))] = if (of.mineType.startsWith("image/")) {
 
         val sourceFile = request.body
 
         val result: Future[File] = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
 
-        val withDimensions: Future[(File, (String, String), (String, String))] = result.map{ r =>
+        result.map { r =>
           sourceFile.clean()
           val outputDimensions = imageService.info(r)
           val imageWidthHeader = (XWidth, outputDimensions._1.toString)
           val imageHeightHeader = (XHeight, outputDimensions._2.toString)
           (r, imageWidthHeader, imageHeightHeader)
-        }
-
-        withDimensions.map { r =>
-          Ok.sendFile(r._1, onClose = () => {
-            r._1.delete()
-          }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
         }
 
       } else {
@@ -217,22 +211,21 @@ object Application extends Controller {
 
         val result: Future[File] = videoService.transcode(sourceFile.file, of.fileExtension)
 
-        val withDimensions = result.map { r =>
+        result.map { r =>
           sourceFile.clean()
 
           //val outputDimensions: Option[(Int, Int)] = videoDimensions(mediainfoService.mediainfo(r))
-          val imageWidthHeader = (XWidth, "320")  // TODO
+          val imageWidthHeader = (XWidth, "320") // TODO
           val imageHeightHeader = (XHeight, "200") // TODO
           (r, imageWidthHeader, imageHeightHeader)
         }
-
-        withDimensions.map { r =>
-          Ok.sendFile(r._1, onClose = () => {
-            r._1.delete()
-          }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
-        }
       }
 
+      eventualResult.map { r =>
+        Ok.sendFile(r._1, onClose = () => {
+          r._1.delete()
+        }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
+      }
     }
   }
 
