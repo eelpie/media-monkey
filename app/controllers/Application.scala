@@ -184,47 +184,45 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode(w: Option[Int], h: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val width = w.getOrElse(320)
       val height = h.getOrElse(200)
 
-      val eventualResult: Future[(File, (String, String), (String, String))] = if (of.mineType.startsWith("image/")) {
-
+      val eventualResult = if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
 
-        val result: Future[File] = videoService.thumbnail(sourceFile.file, of.fileExtension, width, height)
-
-        result.map { r =>
+        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height).map { r =>
           sourceFile.clean()
-          val outputDimensions = imageService.info(r)
-          val imageWidthHeader = (XWidth, outputDimensions._1.toString)
-          val imageHeightHeader = (XHeight, outputDimensions._2.toString)
-          (r, imageWidthHeader, imageHeightHeader)
+          (r, Some(imageService.info(r)))
         }
 
       } else {
-
         val sourceFile = request.body
 
-        val result: Future[File] = videoService.transcode(sourceFile.file, of.fileExtension)
-
-        result.map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension).map { r =>
           sourceFile.clean()
-
-          //val outputDimensions: Option[(Int, Int)] = videoDimensions(mediainfoService.mediainfo(r))
-          val imageWidthHeader = (XWidth, "320") // TODO
-          val imageHeightHeader = (XHeight, "200") // TODO
-          (r, imageWidthHeader, imageHeightHeader)
+          (r, videoDimensions(mediainfoService.mediainfo(r)))
         }
       }
 
-      eventualResult.map { r =>
-        Ok.sendFile(r._1, onClose = () => {
-          r._1.delete()
-        }).withHeaders(CONTENT_TYPE -> of.mineType, r._2, r._3)
+      callback.fold {
+        eventualResult.map { r =>
+          Ok.sendFile(r._1, onClose = () => {
+            r._1.delete()
+          }).withHeaders((CONTENT_TYPE -> of.mineType)) // TODO dimensions
+        }
+      } { c =>
+        eventualResult.map { r =>
+          Logger.info("Calling back to: " + c)
+          WS.url(c).withHeaders((CONTENT_TYPE, of.mineType)).post(r._1).map { rp =>
+            Logger.info("Response from callback url " + callback + ": " + rp.status)
+            r._1.delete()
+          }
+        }
+        Future.successful(Accepted(Json.toJson("Accepted")))
       }
     }
   }
