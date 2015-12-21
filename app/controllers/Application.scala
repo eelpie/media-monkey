@@ -157,22 +157,20 @@ object Application extends Controller {
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
-      val eventualResult: Future[File] = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill) // TODO no error handling
+      // TODO no error handling
 
-      eventualResult.map { result =>
+      imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill).map { result =>
         sourceFile.clean()
 
-        val outputDimensions = imageService.info(result)
-        val imageWidthHeader = (XWidth, outputDimensions._1.toString)
-        val imageHeightHeader = (XHeight, outputDimensions._2.toString)
+        val outputDimensions = Some(imageService.info(result))
 
         callback.fold {
           Ok.sendFile(result, onClose = () => {result.delete()}).
-            withHeaders(CONTENT_TYPE -> of.mineType, imageWidthHeader, imageHeightHeader)
+            withHeaders(headersFor(of, outputDimensions): _*)
 
         } { cb =>
           Logger.info("Calling back to: " + cb)
-          WS.url(cb).withHeaders((CONTENT_TYPE, of.mineType), imageWidthHeader, imageHeightHeader).
+          WS.url(cb).withHeaders(headersFor(of, outputDimensions): _*).
             post(result).map { r =>
             Logger.info("Response from callback url " + callback + ": " + r.status)
             result.delete()
@@ -185,11 +183,6 @@ object Application extends Controller {
   }
 
   def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
-
-    def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
-      val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
-      Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
-    }
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
@@ -260,6 +253,11 @@ object Application extends Controller {
         availableFormats.find(sf => sf.mineType == ah)
       }
     })
+  }
+
+  private def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
+    val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
+    Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
   }
 
 }
