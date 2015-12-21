@@ -13,9 +13,9 @@ class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
-
   def thumbnail(input: File, outputFormat: String, width: Int, height: Int): Future[File] = {
+
+    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
     Future {
       val output: File = File.createTempFile("thumbnail", "." + outputFormat)
@@ -39,6 +39,8 @@ class VideoService {
   }
 
   def transcode(input: File, outputFormat: String): Future[File] = {
+
+    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
     Future {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)

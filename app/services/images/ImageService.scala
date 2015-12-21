@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ImageService {
 
-  implicit val mediaServiceContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+  implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
   def info(input: File): (Int, Int) = {
     val imageInfo: Info = new Info(input.getAbsolutePath, true)
