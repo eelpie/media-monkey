@@ -18,7 +18,6 @@ import scala.concurrent.Future
 
 object Application extends Controller {
 
-  val ApplicationJsonHeader = CONTENT_TYPE -> ("application/json")
   val XWidth = "X-Width"
   val XHeight = "X-Height"
 
