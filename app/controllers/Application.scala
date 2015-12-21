@@ -7,7 +7,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.api.mvc.{Result, Action, BodyParsers, Controller}
+import play.api.mvc.{Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
@@ -186,6 +186,11 @@ object Application extends Controller {
 
   def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
+    def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
+      val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
+      Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
+    }
+
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val width = w.getOrElse(320)
@@ -209,19 +214,21 @@ object Application extends Controller {
       }
 
       callback.fold {
+
         eventualResult.map { r =>
           Ok.sendFile(r._1, onClose = () => {
             r._1.delete()
-          }).withHeaders((CONTENT_TYPE -> of.mineType)) // TODO dimensions
+          }).withHeaders(headersFor(of, r._2): _*)
         }
       } { c =>
         eventualResult.map { r =>
           Logger.info("Calling back to: " + c)
-          WS.url(c).withHeaders((CONTENT_TYPE, of.mineType)).post(r._1).map { rp =>
-            Logger.info("Response from callback url " + callback + ": " + rp.status)
-            r._1.delete()
+          WS.url(c).withHeaders(headersFor(of, r._2): _*).
+            post(r._1).map { rp =>
+              Logger.info("Response from callback url " + callback + ": " + rp.status)
+              r._1.delete()
+            }
           }
-        }
         Future.successful(Accepted(Json.toJson("Accepted")))
       }
     }
