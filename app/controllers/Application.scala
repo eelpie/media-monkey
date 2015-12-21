@@ -7,7 +7,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.api.mvc.{Action, BodyParsers, Controller}
+import play.api.mvc.{Result, Action, BodyParsers, Controller}
 import services.images.ImageService
 import services.mediainfo.MediainfoService
 import services.tika.TikaService
@@ -159,26 +159,12 @@ object Application extends Controller {
       val sourceFile = request.body
       // TODO no error handling
 
-      imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill).map { result =>
+      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotate, of.fileExtension, fill).map { result =>
         sourceFile.clean()
-
-        val outputDimensions = Some(imageService.info(result))
-
-        callback.fold {
-          Ok.sendFile(result, onClose = () => {result.delete()}).
-            withHeaders(headersFor(of, outputDimensions): _*)
-
-        } { cb =>
-          Logger.info("Calling back to: " + cb)
-          WS.url(cb).withHeaders(headersFor(of, outputDimensions): _*).
-            post(result).map { r =>
-            Logger.info("Response from callback url " + callback + ": " + r.status)
-            result.delete()
-          }
-
-          Accepted(Json.toJson("Accepted"))
-        }
+        (result, Some(imageService.info(result)))
       }
+
+      handleResult(of, eventualResult, callback)
     }
   }
 
@@ -206,24 +192,7 @@ object Application extends Controller {
         }
       }
 
-      callback.fold {
-
-        eventualResult.map { r =>
-          Ok.sendFile(r._1, onClose = () => {
-            r._1.delete()
-          }).withHeaders(headersFor(of, r._2): _*)
-        }
-      } { c =>
-        eventualResult.map { r =>
-          Logger.info("Calling back to: " + c)
-          WS.url(c).withHeaders(headersFor(of, r._2): _*).
-            post(r._1).map { rp =>
-              Logger.info("Response from callback url " + callback + ": " + rp.status)
-              r._1.delete()
-            }
-          }
-        Future.successful(Accepted(Json.toJson("Accepted")))
-      }
+      handleResult(of, eventualResult, callback)
     }
   }
 
@@ -258,6 +227,26 @@ object Application extends Controller {
   private def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
     val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
     Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
+  }
+
+  private def handleResult(of: OutputFormat, eventualResult: Future[(File, Option[(Int, Int)])], callback: Option[String]): Future[Result] = {
+    callback.fold {
+      eventualResult.map { r =>
+        Ok.sendFile(r._1, onClose = () => {
+          r._1.delete()
+        }).withHeaders(headersFor(of, r._2): _*)
+      }
+    } { c =>
+      eventualResult.map { r =>
+        Logger.info("Calling back to: " + c)
+        WS.url(c).withHeaders(headersFor(of, r._2): _*).
+          post(r._1).map { rp =>
+          Logger.info("Response from callback url " + callback + ": " + rp.status)
+          r._1.delete()
+        }
+      }
+      Future.successful(Accepted(Json.toJson("Accepted")))
+    }
   }
 
 }
