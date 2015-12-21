@@ -185,7 +185,7 @@ object Application extends Controller {
       } else {
         val sourceFile = request.body
 
-        videoService.transcode(sourceFile.file, of.fileExtension).map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension, width, height).map { r =>
           sourceFile.clean()
           (r, videoDimensions(mediainfoService.mediainfo(r)))
         }

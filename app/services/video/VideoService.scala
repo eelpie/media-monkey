@@ -20,9 +20,7 @@ class VideoService {
     Future {
       val output: File = File.createTempFile("thumbnail", "." + outputFormat)
 
-      val sizeParameters: Seq[String] = Seq("-s", width + "x" + height)
-
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters(width, height) ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
@@ -38,13 +36,13 @@ class VideoService {
     }
   }
 
-  def transcode(input: File, outputFormat: String): Future[File] = {
+  def transcode(input: File, outputFormat: String, width: Int, height: Int): Future[File] = {
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
     Future {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-strict", "experimental", output.getAbsolutePath)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters(width, height) ++ Seq("-strict", "experimental", output.getAbsolutePath)
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
 
@@ -56,6 +54,10 @@ class VideoService {
         throw new RuntimeException("avconv process failed")
       }
     }
+  }
+
+  private def sizeParameters(width: Int, height: Int): Seq[String] = {
+    Seq("-s", width + "x" + height)
   }
 
 }
