@@ -21,21 +21,27 @@ trait TikaService {
 
     val response: Response = asyncHttpClient.executeRequest(putBuilder.build()).get
 
-    val tikaJson: JsValue = Json.parse(response.getResponseBody)
+    if (response.getStatusCode == 200) {
 
-    tikaJson match {
-      case JsObject(fields) => {
-        val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
-          val key: String = f._1
-          val value: Option[String] = f._2 match {
-            case JsString(j) => Some(j.toString())
-            case _ => None
-          }
-          value.map(v => (key, v))
-        }).flatten.toMap
-        Some(toMap)
+      val tikaJson: JsValue = Json.parse(response.getResponseBody)
+      tikaJson match {
+        case JsObject(fields) => {
+          val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
+            val key: String = f._1
+            val value: Option[String] = f._2 match {
+              case JsString(j) => Some(j.toString())
+              case _ => None
+            }
+            value.map(v => (key, v))
+          }).flatten.toMap
+          Some(toMap)
+        }
+        case _ => None
       }
-      case _ => None
+
+    } else {
+      Logger.warn("Unexpected response from Tika: " + response.getStatusCode + " / " + response.getResponseBody)
+      Some(Map())
     }
   }
 
