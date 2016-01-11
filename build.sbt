@@ -26,5 +26,5 @@ packageDescription := "Media handling service"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
 
-debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools")
+debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo")
 
