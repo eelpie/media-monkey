@@ -1,0 +1,24 @@
+package services.mediainfo
+
+import model.Track
+
+trait MediainfoInterpreter {
+
+  def videoDimensions(mediainfoTracks: Option[Seq[Track]]): Option[(Int, Int)] = {
+
+    def parsePixels(i: String): Int = {
+      i.stripSuffix(" pixels").replaceAll(" ", "").toInt
+    }
+
+    mediainfoTracks.flatMap(mi => {
+      mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
+        vt.fields.get("Width").flatMap(w =>
+          vt.fields.get("Height").map(h =>
+            (parsePixels(w), parsePixels(h))
+          )
+        )
+      }
+    })
+  }
+
+}

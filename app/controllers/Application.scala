@@ -9,14 +9,14 @@ import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.api.mvc.{Result, Action, BodyParsers, Controller}
 import services.images.ImageService
-import services.mediainfo.MediainfoService
+import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
 import services.video.VideoService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object Application extends Controller {
+object Application extends Controller with MediainfoInterpreter {
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -226,23 +226,6 @@ object Application extends Controller {
       }
       Future.successful(Accepted(Json.toJson("Accepted")))
     }
-  }
-
-  private def videoDimensions(mediainfoTracks: Option[Seq[Track]]): Option[(Int, Int)] = {
-
-    def parsePixels(i: String): Int = {
-      i.stripSuffix(" pixels").replaceAll(" ", "").toInt
-    }
-
-    mediainfoTracks.flatMap(mi => {
-      mi.find(t => t.trackType == "Video").headOption.flatMap{vt =>
-        vt.fields.get("Width").flatMap(w =>
-          vt.fields.get("Height").map(h =>
-            (parsePixels(w), parsePixels(h))
-          )
-        )
-      }
-    })
   }
 
 }
