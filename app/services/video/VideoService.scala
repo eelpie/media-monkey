@@ -4,16 +4,25 @@ import java.io.File
 
 import play.api.Logger
 import play.api.libs.concurrent.Akka
+import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
 import play.api.Play.current
 
-class VideoService {
+object VideoService extends MediainfoInterpreter {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
+  val mediainfoService = MediainfoService
+
   def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+
+    val rotationToApply = rotation.getOrElse{
+      val ir = inferRotation(mediainfoService.mediainfo(input))
+      Logger.info("Applying rotation infered from mediainfo: " + ir)
+      ir
+    }
 
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
@@ -22,7 +31,7 @@ class VideoService {
 
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationParameters(rotation) ++
+        rotationParameters(rotationToApply) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       val process: Process = avconvCmd.run(logger)
@@ -66,7 +75,7 @@ class VideoService {
     map.fold(Seq[String]())(s => s)
   }
 
-  private def rotationParameters(rotation: Option[Int]): Seq[String] = {
+  private def rotationParameters(rotation: Int): Seq[String] = {
 
     val RotationTransforms = Map(
       90 -> "transpose=1",
@@ -74,14 +83,11 @@ class VideoService {
       270 -> "transpose=2"
     )
 
-    val map: Option[Seq[String]] = rotation.flatMap { r =>
-      RotationTransforms.get(r).map {
-        t => Seq("-vf", t)
-      }
+    val map: Option[Seq[String]] = RotationTransforms.get(rotation).map {
+      t => Seq("-vf", t)
     }
+
     map.fold(Seq[String]())(s => s)
   }
 
 }
-
-object VideoService extends VideoService

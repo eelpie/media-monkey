@@ -88,10 +88,8 @@ object Application extends Controller with MediainfoInterpreter {
 
         val mediainfoTracks = mediainfoService.mediainfo(file)
 
-        val mediainfoRotation = mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == "Video").flatMap(i => i.fields.get("Rotation")))
-        val rotation = mediainfoRotation.fold(0)(mir => parseRotation(mir))
-
         val videoTrackDimensions = videoDimensions(mediainfoTracks)
+        val rotation = inferRotation(mediainfoTracks)
 
         val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
           ts.map { t =>
