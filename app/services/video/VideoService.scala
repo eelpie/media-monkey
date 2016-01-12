@@ -13,7 +13,7 @@ class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def thumbnail(input: File, outputFormat: String, width: Int, height: Int): Future[File] = {
+  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int]): Future[File] = {
 
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
@@ -36,7 +36,7 @@ class VideoService {
     }
   }
 
-  def transcode(input: File, outputFormat: String, width: Int, height: Int): Future[File] = {
+  def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int]): Future[File] = {
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
@@ -56,8 +56,11 @@ class VideoService {
     }
   }
 
-  private def sizeParameters(width: Int, height: Int): Seq[String] = {
-    Seq("-s", width + "x" + height)
+  private def sizeParameters(width: Option[Int], height: Option[Int]): Seq[String] = {
+    val map: Option[Seq[String]] = width.flatMap(w =>
+      height.map(h => Seq("-s", w + "x" + h))
+    )
+    map.fold(Seq[String]())(s => s)
   }
 
 }

@@ -171,13 +171,10 @@ object Application extends Controller {
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
-      val width = w.getOrElse(320)
-      val height = h.getOrElse(200)
-
       val eventualResult = if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
 
-        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height).map { r =>
+        videoService.thumbnail(sourceFile.file, of.fileExtension, w, h).map { r =>
           sourceFile.clean()
           (r, Some(imageService.info(r)))
         }
@@ -185,7 +182,7 @@ object Application extends Controller {
       } else {
         val sourceFile = request.body
 
-        videoService.transcode(sourceFile.file, of.fileExtension, width, height).map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension, w, h).map { r =>
           sourceFile.clean()
           (r, videoDimensions(mediainfoService.mediainfo(r)))
         }
