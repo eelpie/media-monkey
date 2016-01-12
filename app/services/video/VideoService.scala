@@ -13,14 +13,17 @@ class VideoService {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
 
-  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int]): Future[File] = {
+  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
 
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
     Future {
       val output: File = File.createTempFile("thumbnail", "." + outputFormat)
 
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters(width, height) ++ Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        sizeParameters(width, height) ++
+        rotationParameters(rotation) ++
+        Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
@@ -60,6 +63,23 @@ class VideoService {
     val map: Option[Seq[String]] = width.flatMap(w =>
       height.map(h => Seq("-s", w + "x" + h))
     )
+    map.fold(Seq[String]())(s => s)
+  }
+
+  private def rotationParameters(rotation: Option[Int]): Seq[String] = {
+
+    val RotationTransforms = Map(
+      0 -> "transpose=1",
+      90 -> "transpose=1",
+      180 -> "hflip,vflip",
+      270 -> "transpose=2"
+    )
+
+    val map: Option[Seq[String]] = rotation.flatMap { r =>
+      RotationTransforms.get(r).map {
+        t => Seq("-vf", t)
+      }
+    }
     map.fold(Seq[String]())(s => s)
   }
 

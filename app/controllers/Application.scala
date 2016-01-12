@@ -167,14 +167,14 @@ object Application extends Controller {
     }
   }
 
-  def videoTranscode(w: Option[Int], h: Option[Int], callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
 
-        videoService.thumbnail(sourceFile.file, of.fileExtension, w, h).map { r =>
+        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, rotate).map { r =>
           sourceFile.clean()
           (r, Some(imageService.info(r)))
         }
@@ -182,7 +182,7 @@ object Application extends Controller {
       } else {
         val sourceFile = request.body
 
-        videoService.transcode(sourceFile.file, of.fileExtension, w, h).map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension, width, height).map { r =>
           sourceFile.clean()
           (r, videoDimensions(mediainfoService.mediainfo(r)))
         }
