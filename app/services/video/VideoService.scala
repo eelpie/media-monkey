@@ -34,6 +34,8 @@ object VideoService extends MediainfoInterpreter {
         rotationParameters(rotationToApply) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
+      Logger.info("avconv command: " + avconvCmd)
+
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
 
@@ -64,6 +66,8 @@ object VideoService extends MediainfoInterpreter {
         sizeParameters(width, height) ++
         rotationParameters(rotationToApply) ++
         Seq("-strict", "experimental", output.getAbsolutePath)
+
+      Logger.info("avconv command: " + avconvCmd)
 
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
