@@ -197,6 +197,18 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "video thumbnails can be explictly rotated" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/video/transcode&rotate=90").
+        withHeaders(("Accept" -> "image/jpeg")).
+        post(new File("test/resources/IMG_0004.MOV"))
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.header("X-Width").get.toInt must equalTo(320)
+      response.header("X-Height").get.toInt must equalTo(568)
+    }
+  }
+
   "video thumbnail orientation should match video rotation metadata" in {
     running(TestServer(port)) {
       val videoFileWith90DegreeRotationMetadata: File = new File("test/resources/VID_20150822_144123.mp4")
