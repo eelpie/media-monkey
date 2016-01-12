@@ -197,6 +197,19 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "video thumbnail orientation should match video rotation metadata" in {
+    running(TestServer(port)) {
+      val videoFileWith90DegreeRotationMetadata: File = new File("test/resources/VID_20150822_144123.mp4")
+      val eventualResponse = WS.url(localUrl + "/video/transcode").
+        withHeaders(("Accept" -> "image/jpeg")).
+        post(videoFileWith90DegreeRotationMetadata)
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.header("X-Width").get.toInt must equalTo(1080)
+      response.header("X-Height").get.toInt must equalTo(1920)
+    }
+  }
+
   private def metadataForResponse(response: WSResponse): JsValue = {
     val tf = java.io.File.createTempFile("response", "tmp")
     writeResponseBodyToFile(response, tf)
