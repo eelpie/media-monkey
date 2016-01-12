@@ -180,7 +180,7 @@ object Application extends Controller with MediainfoInterpreter {
       } else {
         val sourceFile = request.body
 
-        videoService.transcode(sourceFile.file, of.fileExtension, width, height).map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension, width, height, rotate).map { r =>
           sourceFile.clean()
           (r, videoDimensions(mediainfoService.mediainfo(r)))
         }

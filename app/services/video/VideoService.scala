@@ -48,13 +48,23 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
-  def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int]): Future[File] = {
+  def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+
+    val rotationToApply = rotation.getOrElse{
+      val ir = inferRotation(mediainfoService.mediainfo(input))
+      Logger.info("Applying rotation infered from mediainfo: " + ir)
+      ir
+    }
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
     Future {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++ sizeParameters(width, height) ++ Seq("-strict", "experimental", output.getAbsolutePath)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        sizeParameters(width, height) ++
+        rotationParameters(rotationToApply) ++
+        Seq("-strict", "experimental", output.getAbsolutePath)
+
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
 
