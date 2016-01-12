@@ -204,11 +204,11 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         post(new File("test/resources/IMG_0004.MOV"))
       val response = Await.result(eventualResponse, tenSeconds)
 
-      response.header("X-Width").get.toInt must equalTo(568)
-      response.header("X-Height").get.toInt must equalTo(320)
+      response.header("X-Width").get.toInt must equalTo(1008)
+      response.header("X-Height").get.toInt must equalTo(568)
     }
   }
-  
+
   private def metadataForResponse(response: WSResponse): JsValue = {
     val tf = java.io.File.createTempFile("response", "tmp")
     writeResponseBodyToFile(response, tf)
