@@ -23,13 +23,4 @@ If a callback url as provided the service will return HTTP 202 Accepted and POST
 The image file should be sent as raw bytes on the request body.
 The desired return image format should be specified using the Accepts header on the request.
 
-
-####POST /video/thumbnail
-
-
 ####POST /video/transcode
-
-
-####POST /video/transcode/scale
-
-Asynchronous version of the transcode endpoint.
