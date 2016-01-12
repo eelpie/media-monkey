@@ -69,7 +69,6 @@ class VideoService {
   private def rotationParameters(rotation: Option[Int]): Seq[String] = {
 
     val RotationTransforms = Map(
-      0 -> "transpose=1",
       90 -> "transpose=1",
       180 -> "hflip,vflip",
       270 -> "transpose=2"
