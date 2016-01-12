@@ -94,7 +94,7 @@ object VideoService extends MediainfoInterpreter {
     )
 
     val map: Option[Seq[String]] = RotationTransforms.get(rotation).map {
-      t => Seq("-vf", t)
+      t => Seq("-vf", t, """pad="ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"""")
     }
 
     map.fold(Seq[String]())(s => s)
