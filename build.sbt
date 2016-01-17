@@ -28,3 +28,4 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
 
 debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo")
 
+serverLoading in Debian:= ServerLoader.Systemd
