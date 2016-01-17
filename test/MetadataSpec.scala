@@ -100,9 +100,9 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, tenSeconds)
-      val aspectRatioField = (Json.parse(response.body) \ "Display_aspect_ratio").toOption
 
-      aspectRatioField.get.as[String] must equalTo("16:9")
+      (Json.parse(response.body) \ "Display_aspect_ratio").toOption.get.as[String] must equalTo("16:9")
+      (Json.parse(response.body) \ "Frame_rate").toOption.get.as[String] must equalTo("30.000 fps")
     }
   }
 
