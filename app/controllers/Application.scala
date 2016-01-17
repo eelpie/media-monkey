@@ -92,7 +92,7 @@ object Application extends Controller with MediainfoInterpreter {
         val rotation = inferRotation(mediainfoTracks)
 
         val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
-          ts.map { t =>
+          ts.filter( t => t.trackType == "General" || t.trackType == "Video").map { t =>  // TODO work out a good format to preserver all of this information
             t.fields.toSeq
           }.flatten
         }
