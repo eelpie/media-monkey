@@ -67,7 +67,7 @@ object VideoService extends MediainfoInterpreter {
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
         rotationAndPaddingParameters(rotationToApply) ++
-        Seq("-vf", "fps", "1") ++
+        Seq("-vf", "fps=1") ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
         Logger.info("avconv command: " + avconvCmd)
