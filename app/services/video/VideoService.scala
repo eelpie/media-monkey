@@ -50,7 +50,7 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
-  def strip(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]) = {
+  def strip(input: File, outputFormat: String, width: Int, height: Int, rotation: Option[Int]) = {
 
     val rotationToApply = rotation.getOrElse{
       val ir = inferRotation(mediainfoService.mediainfo(input))
@@ -64,7 +64,7 @@ object VideoService extends MediainfoInterpreter {
       val output: File = File.createTempFile("strip", "")
 
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
-        sizeParameters(width, height) ++
+        sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
         rotationAndPaddingParameters(rotationToApply) ++
         Seq("-vf", "fps", "1") ++

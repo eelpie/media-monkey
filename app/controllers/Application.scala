@@ -167,19 +167,15 @@ object Application extends Controller with MediainfoInterpreter {
     }
   }
 
-  def strip(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
-
+  def videoStrip(w: Option[Int], h: Option[Int], callback: Option[String], rotate: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val width = w.getOrElse(320)
     val height = h.getOrElse(180)
-    val rotationToApply = rotate.getOrElse(0)
-
-    val fill = f.getOrElse(false)
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
       // TODO no error handling
 
-      val eventualResult = videoService.strip(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).map { result =>
+      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, rotate).map { result =>
         sourceFile.clean()
         (result, Some(imageService.info(result)))
       }
