@@ -31,7 +31,7 @@ object VideoService extends MediainfoInterpreter {
 
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationParameters(rotationToApply) ++
+        rotationAndPaddingParameters(rotationToApply) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -50,6 +50,45 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
+  def strip(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]) = {
+
+    val rotationToApply = rotation.getOrElse{
+      val ir = inferRotation(mediainfoService.mediainfo(input))
+      Logger.info("Applying rotation infered from mediainfo: " + ir)
+      ir
+    }
+
+    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+
+    Future {
+      val output: File = File.createTempFile("strip", "")
+
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        sizeParameters(width, height) ++
+        Seq("-ss", "00:00:00", "-an") ++
+        rotationAndPaddingParameters(rotationToApply) ++
+        Seq("-vf", "fps", "1") ++
+        Seq(output.getAbsolutePath + "-%6d." + outputFormat)
+
+        Logger.info("avconv command: " + avconvCmd)
+
+        val process: Process = avconvCmd.run(logger)
+        val exitValue: Int = process.exitValue() // Blocks until the process completes
+
+        if (exitValue == 0) {
+          Logger.info("Strip files output to: " + output.getAbsolutePath)
+          output
+
+        } else {
+          Logger.warn("avconv process failed")
+          throw new RuntimeException("avconv process failed")
+        }
+
+      // avconv -i input.original -s 320x180 -ss 00:00:00 -an -vf fps=1,pad=ih*16/9:ih:\(ow-iw\)/2:\(oh-ih\)/2 output-%3d.jpg
+      // convert test-*.jpg +append out.jpg
+      }
+  }
+
   def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
 
     val rotationToApply = rotation.getOrElse{
@@ -64,7 +103,7 @@ object VideoService extends MediainfoInterpreter {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationParameters(rotationToApply) ++
+        rotationAndPaddingParameters(rotationToApply) ++
         Seq("-strict", "experimental", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -89,7 +128,7 @@ object VideoService extends MediainfoInterpreter {
     map.fold(Seq[String]())(s => s)
   }
 
-  private def rotationParameters(rotation: Int): Seq[String] = {
+  private def rotationAndPaddingParameters(rotation: Int): Seq[String] = {
 
     val RotationTransforms = Map(
       90 -> "transpose=1",
