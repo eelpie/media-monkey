@@ -94,6 +94,7 @@ object VideoService extends MediainfoInterpreter {
 
 
           val cmd: ConvertCmd = new ConvertCmd()
+          cmd.createScript("/tmp/append.log", appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat))
           cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat), output.getAbsolutePath())
           Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
           output
