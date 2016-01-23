@@ -64,7 +64,6 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val output: File = File.createTempFile("strip", "")
 
-      // avconv -i input.original -s 320x180 -ss 00:00:00 -an -vf fps=1,pad=ih*16/9:ih:\(ow-iw\)/2:\(oh-ih\)/2 output-%3d.jpg
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
@@ -73,7 +72,6 @@ object VideoService extends MediainfoInterpreter {
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
       Logger.info("avconv command: " + avconvCmd)
-
       val process: Process = avconvCmd.run(logger)
       val exitValue: Int = process.exitValue() // Blocks until the process completes
 
@@ -81,10 +79,7 @@ object VideoService extends MediainfoInterpreter {
         Logger.info("Strip files output to: " + output.getAbsolutePath)
 
         val imageOutput: File = File.createTempFile("image", "." + outputFormat)
-
-        // convert test-*.jpg +append out.jpg
         try {
-
           def appendImagesOperation(files: String, outputPath: String): IMOperation = {
             val op: IMOperation = new IMOperation()
             op.addImage(files)
@@ -92,7 +87,7 @@ object VideoService extends MediainfoInterpreter {
             op.addImage(outputPath)
             op
           }
-          
+
           val cmd: ConvertCmd = new ConvertCmd()
           cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath()))
           Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
