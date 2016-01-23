@@ -85,16 +85,16 @@ object VideoService extends MediainfoInterpreter {
         // convert test-*.jpg +append out.jpg
         try {
 
-          def appendImagesOperation: IMOperation = {
+          def appendImagesOperation(files: String): IMOperation = {
             val op: IMOperation = new IMOperation()
-            op.addImage()
+            op.addImage(files)
             op.appendHorizontally()
             op
           }
 
 
           val cmd: ConvertCmd = new ConvertCmd()
-          cmd.run(appendImagesOperation, output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath())
+          cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat), output.getAbsolutePath())
           Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
           output
 
