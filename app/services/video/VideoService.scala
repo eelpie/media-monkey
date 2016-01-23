@@ -2,6 +2,7 @@ package services.video
 
 import java.io.File
 
+import org.im4java.core.{IMOperation, ConvertCmd}
 import play.api.Logger
 import play.api.libs.concurrent.Akka
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
@@ -63,6 +64,7 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val output: File = File.createTempFile("strip", "")
 
+      // avconv -i input.original -s 320x180 -ss 00:00:00 -an -vf fps=1,pad=ih*16/9:ih:\(ow-iw\)/2:\(oh-ih\)/2 output-%3d.jpg
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
@@ -70,23 +72,45 @@ object VideoService extends MediainfoInterpreter {
         Seq("-vf", "fps=1") ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
-        Logger.info("avconv command: " + avconvCmd)
+      Logger.info("avconv command: " + avconvCmd)
 
-        val process: Process = avconvCmd.run(logger)
-        val exitValue: Int = process.exitValue() // Blocks until the process completes
+      val process: Process = avconvCmd.run(logger)
+      val exitValue: Int = process.exitValue() // Blocks until the process completes
 
-        if (exitValue == 0) {
-          Logger.info("Strip files output to: " + output.getAbsolutePath)
+      if (exitValue == 0) {
+        Logger.info("Strip files output to: " + output.getAbsolutePath)
+
+        val imageOutput: File = File.createTempFile("image", "." + outputFormat)
+
+        // convert test-*.jpg +append out.jpg
+        try {
+
+          def appendImagesOperation: IMOperation = {
+            val op: IMOperation = new IMOperation()
+            op.appendHorizontally()
+            op
+          }
+
+
+          val cmd: ConvertCmd = new ConvertCmd()
+          cmd.run(appendImagesOperation, output.getAbsolutePath + "-%6d." + outputFormat, output.getAbsolutePath())
+          Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
           output
 
-        } else {
-          Logger.warn("avconv process failed")
-          throw new RuntimeException("avconv process failed")
+        } catch {
+          case e: Exception => {
+            Logger.error("Exception while executing IM operation", e)
+            output.delete()
+            throw e
+          }
         }
 
-      // avconv -i input.original -s 320x180 -ss 00:00:00 -an -vf fps=1,pad=ih*16/9:ih:\(ow-iw\)/2:\(oh-ih\)/2 output-%3d.jpg
-      // convert test-*.jpg +append out.jpg
+      } else {
+        Logger.warn("avconv process failed")
+        throw new RuntimeException("avconv process failed")
       }
+
+    }
   }
 
   def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
