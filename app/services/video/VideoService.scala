@@ -87,6 +87,7 @@ object VideoService extends MediainfoInterpreter {
 
           def appendImagesOperation: IMOperation = {
             val op: IMOperation = new IMOperation()
+            op.addImage()
             op.appendHorizontally()
             op
           }
