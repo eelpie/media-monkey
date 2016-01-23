@@ -93,7 +93,7 @@ object VideoService extends MediainfoInterpreter {
 
 
           val cmd: ConvertCmd = new ConvertCmd()
-          cmd.run(appendImagesOperation, output.getAbsolutePath + "-%6d." + outputFormat, output.getAbsolutePath())
+          cmd.run(appendImagesOperation, output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath())
           Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
           output
 
