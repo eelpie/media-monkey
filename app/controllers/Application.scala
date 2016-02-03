@@ -71,13 +71,25 @@ object Application extends Controller with MediainfoInterpreter {
           })
         })
 
+        val rotation: Option[Int] = exifOrientation.flatMap{ o =>
+          val exifRotations = Map[String, Int](
+            "Right side, top (Rotate 90 CW)" -> 90,
+            "Bottom, right side (Rotate 180)" -> 180,
+            "Left side, bottom (Rotate 270 CW)" -> 270
+          )
+          exifRotations.get(o)
+        }
+
         val orientation = orientedImageDimensions.map(im => {
          if (im._1 > im._2) "landscape" else "portrait"
         })
 
-        Seq(orientedImageDimensions.map(id => ("width" -> id._1)),
+        Seq(
+          orientedImageDimensions.map(id => ("width" -> id._1)),
           orientedImageDimensions.map(id => ("height" -> id._2)),
-          orientation.map(o => ("orientation" -> o))).flatten
+          orientation.map(o => ("orientation" -> o)),
+          rotation.map(r => ("rotation" -> r))
+        ).flatten
       }
 
       def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
