@@ -60,18 +60,7 @@ object Application extends Controller with MediainfoInterpreter {
 
         val exifOrientation: Option[String] = metadata.get("Orientation")
 
-        val orientedImageDimensions: Option[(Int, Int)] = exifOrientation.fold(imageDimensions)(eo => {
-          imageDimensions.map(im => {
-            val orientationsRequiringWidthHeightFlip = Seq("Right side, top (Rotate 90 CW)", "Left side, bottom (Rotate 270 CW)")
-            if (orientationsRequiringWidthHeightFlip.contains(eo)) {
-              (im._2, im._1)
-            } else {
-              im
-            }
-          })
-        })
-
-        val rotation: Option[Int] = exifOrientation.flatMap{ o =>
+        val rotation: Option[Int] = exifOrientation.flatMap { o =>
           val exifRotations = Map[String, Int](
             "Right side, top (Rotate 90 CW)" -> 90,
             "Bottom, right side (Rotate 180)" -> 180,
@@ -79,6 +68,17 @@ object Application extends Controller with MediainfoInterpreter {
           )
           exifRotations.get(o)
         }
+
+        val orientedImageDimensions: Option[(Int, Int)] = rotation.fold(imageDimensions)(r => {
+          imageDimensions.map(im => {
+            val orientationsRequiringWidthHeightFlip = Seq(90, 270)
+            if (orientationsRequiringWidthHeightFlip.contains(r)) {
+              (im._2, im._1)
+            } else {
+              im
+            }
+          })
+        })
 
         val orientation = orientedImageDimensions.map(im => {
          if (im._1 > im._2) "landscape" else "portrait"
