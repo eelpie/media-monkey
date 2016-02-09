@@ -1,13 +1,13 @@
 package controllers
 
-import java.io.File
+import java.io.{File, FileInputStream}
 
-import model.Track
+import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
-import play.api.mvc.{Result, Action, BodyParsers, Controller}
+import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
@@ -134,7 +134,7 @@ object Application extends Controller with MediainfoInterpreter {
     tikaService.meta(sourceFile.file).fold({
       Future.successful(InternalServerError("Could not process metadata"))
 
-    }) (md => {
+    }) { md =>
       implicit val writes = new Writes[Map[String, Any]] {
         override def writes(o: Map[String, Any]): JsValue = {
           val map = o.map(i => {
@@ -150,12 +150,17 @@ object Application extends Controller with MediainfoInterpreter {
         }
       }
 
-      val contentTypeSpecificAttributes = inferContentTypeSpecificAttributes(md, request.body.file)
+      val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(md, request.body.file)
+
+      val stream: FileInputStream = new FileInputStream(sourceFile.file)
+      val md5Checksum = DigestUtils.md5Hex(stream)
+      stream.close()
+      val md5 = Map("md5" -> md5Checksum)
 
       sourceFile.clean()
 
-      Future.successful(Ok(Json.toJson(md ++ contentTypeSpecificAttributes)))
-    })
+      Future.successful(Ok(Json.toJson(md ++ contentTypeSpecificAttributes ++ md5)))
+    }
   }
 
   def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>

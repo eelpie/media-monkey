@@ -117,4 +117,15 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "md5 hash should be included in metadata to assist with duplicate detection" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "md5").toOption.get.as[Int] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
+    }
+  }
+
 }
