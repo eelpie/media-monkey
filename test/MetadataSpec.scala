@@ -124,7 +124,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       val response = Await.result(eventualResponse, tenSeconds)
 
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "md5").toOption.get.as[Int] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
+      (jsonResponse \ "md5").toOption.get.as[String] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
     }
   }
 
