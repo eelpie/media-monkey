@@ -158,7 +158,9 @@ object VideoService extends MediainfoInterpreter {
 
     val possibleRotation: Option[String] = RotationTransforms.get(rotation)
 
-    Seq("-vf", possibleRotation.fold("")(r => r + ",") + "pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
+    val vfParameters: Seq[String] = Seq(possibleRotation, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")).flatten
+
+    Seq("-vf", vfParameters.mkString(","))
   }
 
 }
