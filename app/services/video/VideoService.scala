@@ -67,8 +67,7 @@ object VideoService extends MediainfoInterpreter {
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
-        rotationAndPaddingParameters(rotationToApply) ++
-        Seq("-vf", "fps=1") ++
+        rotationAndPaddingParameters(rotationToApply, Some("fps=1")) ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -123,7 +122,7 @@ object VideoService extends MediainfoInterpreter {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationAndPaddingParameters(rotationToApply) ++
+        rotationAndPaddingParameters(rotationToApply, None) ++
         Seq("-strict", "experimental", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -148,7 +147,7 @@ object VideoService extends MediainfoInterpreter {
     map.fold(Seq[String]())(s => s)
   }
 
-  private def rotationAndPaddingParameters(rotation: Int): Seq[String] = {
+  private def rotationAndPaddingParameters(rotation: Int, additionalVfArguments: Option[String]): Seq[String] = {
 
     val RotationTransforms = Map(
       90 -> "transpose=1",
@@ -158,7 +157,7 @@ object VideoService extends MediainfoInterpreter {
 
     val possibleRotation: Option[String] = RotationTransforms.get(rotation)
 
-    val vfParameters: Seq[String] = Seq(possibleRotation, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")).flatten
+    val vfParameters: Seq[String] = Seq(possibleRotation, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), additionalVfArguments).flatten
 
     Seq("-vf", vfParameters.mkString(","))
   }
