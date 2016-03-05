@@ -129,11 +129,13 @@ object Application extends Controller with MediainfoInterpreter {
         }
       }
 
+      val map: Option[Seq[(String, String)]] = `type`.map(t => Seq(("type" -> t)))
+      val map1: Option[Seq[(String, String)]] = contentType.map(ct => Seq(("contentType" -> ct)))
+      val map2: Option[Seq[(String, String)]] = contentType.flatMap(ct => tikaService.suggestedFileExtension(ct).map(e => Seq("fileExtension" -> e)))
       (contentTypeSpecificAttributes ++
-        `type`.map(t => Seq(("type" -> t))) ++
-        contentType.map(ct => Seq(("contentType" -> ct))) ++
-        contentType.flatMap(ct => tikaService.suggestedFileExtension(ct).map( e => "fileExtension" -> e))
-        ).flatten.toMap
+        map ++
+        map1 ++
+        map2).flatten.toMap
     }
 
     val sourceFile = request.body
