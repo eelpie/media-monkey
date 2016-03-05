@@ -127,7 +127,10 @@ object Application extends Controller with MediainfoInterpreter {
         }
       })
 
-      (contentTypeSpecificAttributes ++ contentType.map(ct => Seq(("type" -> ct)))).flatten.toMap
+      (contentTypeSpecificAttributes ++
+        contentType.map(ct => Seq(("type" -> ct)) ++
+        contentType.flatMap(vt => tikaService.suggestedFileExtension(ct).map( e => "fileExtension" -> e))
+        )).flatten.toMap
     }
 
     val sourceFile = request.body

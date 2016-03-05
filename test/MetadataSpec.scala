@@ -29,6 +29,18 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "should provide a suggested file extension" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(OK)
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "fileExtension").toOption.get.as[String] must equalTo("jpg")
+    }
+  }
+
   "image size and orientation should be summarised" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
