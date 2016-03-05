@@ -39,8 +39,8 @@ object Application extends Controller with MediainfoInterpreter {
 
     def inferContentTypeSpecificAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
 
-      def inferType(md: Map[String, String]): Option[String] = {
-        md.get(CONTENT_TYPE).flatMap { ct =>
+      def inferType(contentType: Option[String]): Option[String] = {
+        contentType.flatMap { ct =>
           if (recognisedImageTypes.exists(it => it.mineType == ct)) {
             Some("image")
           } else if (recognisedVideoTypes.exists(vt => vt.mineType == ct)) {
@@ -115,7 +115,9 @@ object Application extends Controller with MediainfoInterpreter {
         combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
       }
 
-      val `type`: Option[String] = inferType(metadata)
+      val contentType = metadata.get(CONTENT_TYPE)
+
+      val `type`: Option[String] = inferType(contentType)
 
       val contentTypeSpecificAttributes = `type`.flatMap{ t =>
         if (t == "image") {
@@ -128,8 +130,8 @@ object Application extends Controller with MediainfoInterpreter {
       }
 
       (contentTypeSpecificAttributes ++
-        `type`.map(ct => Seq(("type" -> ct)) ++
-        `type`.flatMap(vt => tikaService.suggestedFileExtension(ct).map( e => "fileExtension" -> e))
+        `type`.map(t => Seq(("type" -> t)) ++
+        contentType.flatMap(ct => tikaService.suggestedFileExtension(ct).map( e => "fileExtension" -> e))
         )).flatten.toMap
     }
 
