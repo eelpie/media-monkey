@@ -3,10 +3,13 @@ package services.tika
 import java.io.{File, FileInputStream}
 
 import com.ning.http.client.{AsyncHttpClient, Response}
-import play.api.{Play, Logger}
-import play.api.libs.json.{JsString, JsObject, JsValue, Json}
-import play.api.libs.ws.WS
+import org.apache.tika.mime.MimeTypes
 import play.api.Play.current
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import play.api.libs.ws.WS
+import play.api.{Logger, Play}
+
+import scala.collection.JavaConverters._
 
 trait TikaService {
 
@@ -42,6 +45,13 @@ trait TikaService {
     } else {
       Logger.warn("Unexpected response from Tika: " + response.getStatusCode + " / " + response.getResponseBody)
       Some(Map())
+    }
+  }
+
+  def suggestedFileExtension(contentType: String): Option[String] = {
+    val mimeType = MimeTypes.getDefaultMimeTypes.forName(contentType)
+    mimeType.getExtensions.asScala.headOption.map { e =>
+      e.replaceFirst("\\.", "")
     }
   }
 
