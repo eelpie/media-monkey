@@ -33,7 +33,7 @@ object VideoService extends MediainfoInterpreter {
 
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationAndPaddingParameters(rotationToApply, None, None) ++
+        rotationAndPaddingParameters(rotationToApply, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), None) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -68,7 +68,7 @@ object VideoService extends MediainfoInterpreter {
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
-        rotationAndPaddingParameters(rotationToApply, None, Some("fps=1")) ++
+        rotationAndPaddingParameters(rotationToApply, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), Some("fps=1")) ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
       Logger.info("avconv command: " + avconvCmd)
