@@ -19,6 +19,7 @@ object VideoService extends MediainfoInterpreter {
   val mediainfoService = MediainfoService
 
   def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+    val mediainfo: Option[Seq[Track]] = mediainfoService.mediainfo(input)
 
     val rotationToApply = rotation.getOrElse{
       val ir = inferRotation(mediainfoService.mediainfo(input))
@@ -31,9 +32,16 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val output: File = File.createTempFile("thumbnail", "." + outputFormat)
 
+      val outputSize = width.flatMap( w =>
+        height.map { h =>
+          (w, h)
+        }
+      )
+      val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
+
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationAndPaddingParameters(rotationToApply, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), None) ++
+        rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, rotationToApply), None) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -53,9 +61,10 @@ object VideoService extends MediainfoInterpreter {
   }
 
   def strip(input: File, outputFormat: String, width: Int, height: Int, rotation: Option[Int]) = {
+    val mediainfo: Option[Seq[Track]] = mediainfoService.mediainfo(input)
 
     val rotationToApply = rotation.getOrElse{
-      val ir = inferRotation(mediainfoService.mediainfo(input))
+      val ir = inferRotation(mediainfo)
       Logger.info("Applying rotation infered from mediainfo: " + ir)
       ir
     }
@@ -65,10 +74,12 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val output: File = File.createTempFile("strip", "")
 
+      val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
+
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
-        rotationAndPaddingParameters(rotationToApply, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), Some("fps=1")) ++
+        rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), rotationToApply), Some("fps=1")) ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -118,28 +129,8 @@ object VideoService extends MediainfoInterpreter {
       ir
     }
 
-    val possiblePadding: Option[String] = {
-      outputSize.flatMap { os =>
-        val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
-        sourceDimensions.flatMap { sd =>
-          val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
-          Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
-
-          val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._1).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
-          Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
-
-          val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
-          val isRotated = (rotationToApply == 90 || rotationToApply == 270)
-          if (aspectRatiosDiffer || isRotated) {
-            Logger.info("Applying padding")
-            Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
-          } else {
-            Logger.info("No padding required")
-            None
-          }
-        }
-      }
-    }
+    val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
+    val possiblePadding = padding(sourceDimensions, outputSize, rotationToApply)
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
@@ -171,6 +162,29 @@ object VideoService extends MediainfoInterpreter {
     )
     map.fold(Seq[String]())(s => s)
   }
+
+  private def padding(sourceDimensions: Option[(Int, Int)], outputSize: Option[(Int, Int)], rotationToApply: Int): Option[String] = {
+    outputSize.flatMap { os =>
+      sourceDimensions.flatMap { sd =>
+        val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+        Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
+
+        val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._1).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+        Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
+
+        val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
+        val isRotated = (rotationToApply == 90 || rotationToApply == 270)
+        if (aspectRatiosDiffer || isRotated) {
+          Logger.info("Applying padding")
+          Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
+        } else {
+          Logger.info("No padding required")
+          None
+        }
+      }
+    }
+  }
+
 
   private def rotationAndPaddingParameters(rotation: Int, possiblePadding: Option[String], additionalVfArguments: Option[String]): Seq[String] = {
 
