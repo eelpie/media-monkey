@@ -197,15 +197,15 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     }
   }
 
-  "video thumbnails can be rotated by while be letter boxed" in {
+  "video thumbnails can be rotated and letter boxed to fit requested dimensions" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?rotate=90").
+      val eventualResponse = WS.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
       val response = Await.result(eventualResponse, tenSeconds)
 
-      response.header("X-Width").get.toInt must equalTo(1008)
-      response.header("X-Height").get.toInt must equalTo(568)
+      response.header("X-Width").get.toInt must equalTo(568)
+      response.header("X-Height").get.toInt must equalTo(320)
     }
   }
 
