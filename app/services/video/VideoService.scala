@@ -2,6 +2,7 @@ package services.video
 
 import java.io.File
 
+import model.Track
 import org.im4java.core.{IMOperation, ConvertCmd}
 import play.api.Logger
 import play.api.libs.concurrent.Akka
@@ -32,7 +33,7 @@ object VideoService extends MediainfoInterpreter {
 
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationAndPaddingParameters(rotationToApply, None) ++
+        rotationAndPaddingParameters(rotationToApply, None, None) ++
         Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -67,7 +68,7 @@ object VideoService extends MediainfoInterpreter {
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(Some(width), Some(height)) ++
         Seq("-ss", "00:00:00", "-an") ++
-        rotationAndPaddingParameters(rotationToApply, Some("fps=1")) ++
+        rotationAndPaddingParameters(rotationToApply, None, Some("fps=1")) ++
         Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -109,11 +110,29 @@ object VideoService extends MediainfoInterpreter {
   }
 
   def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+    val mediainfo: Option[Seq[Track]] = mediainfoService.mediainfo(input)
 
     val rotationToApply = rotation.getOrElse{
-      val ir = inferRotation(mediainfoService.mediainfo(input))
+      val ir = inferRotation(mediainfo)
       Logger.info("Applying rotation infered from mediainfo: " + ir)
       ir
+    }
+
+    val possiblePadding: Option[String] = {
+      val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
+      sourceDimensions.flatMap { sd =>
+        val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2).toDouble
+        Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
+
+        val outputAspectRatio = BigDecimal(width.get) / BigDecimal(height.get).setScale(2).toDouble // TODO naked get
+        Logger.info("Ouptut dimensions " + (width, height) + " aspect ratio: " + outputAspectRatio)
+
+        if (sourceAspectRatio != outputAspectRatio) { // TODO rotation effects this decision as well.
+          Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
+        } else {
+          None
+        }
+      }
     }
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
@@ -122,7 +141,7 @@ object VideoService extends MediainfoInterpreter {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
         sizeParameters(width, height) ++
-        rotationAndPaddingParameters(rotationToApply, None) ++
+        rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
         Seq("-strict", "experimental", output.getAbsolutePath)
 
       Logger.info("avconv command: " + avconvCmd)
@@ -147,7 +166,7 @@ object VideoService extends MediainfoInterpreter {
     map.fold(Seq[String]())(s => s)
   }
 
-  private def rotationAndPaddingParameters(rotation: Int, additionalVfArguments: Option[String]): Seq[String] = {
+  private def rotationAndPaddingParameters(rotation: Int, possiblePadding: Option[String], additionalVfArguments: Option[String]): Seq[String] = {
 
     val RotationTransforms = Map(
       90 -> "transpose=1",
@@ -156,10 +175,9 @@ object VideoService extends MediainfoInterpreter {
     )
 
     val possibleRotation: Option[String] = RotationTransforms.get(rotation)
+    val vfParameters: Seq[String] = Seq(possibleRotation, possiblePadding, additionalVfArguments).flatten
 
-    val vfParameters: Seq[String] = Seq(possibleRotation, Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"), additionalVfArguments).flatten
-
-    Seq("-vf", vfParameters.mkString(","))
+    if (vfParameters.nonEmpty) Seq("-vf", vfParameters.mkString(",")) else Seq()
   }
 
 }
