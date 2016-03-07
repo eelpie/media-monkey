@@ -169,7 +169,7 @@ object VideoService extends MediainfoInterpreter {
         val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
 
-        val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._1).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+        val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._2).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
         val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
