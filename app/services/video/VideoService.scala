@@ -109,7 +109,7 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
-  def transcode(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+  def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[File] = {
     val mediainfo: Option[Seq[Track]] = mediainfoService.mediainfo(input)
 
     val rotationToApply = rotation.getOrElse{
@@ -119,18 +119,21 @@ object VideoService extends MediainfoInterpreter {
     }
 
     val possiblePadding: Option[String] = {
-      val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
-      sourceDimensions.flatMap { sd =>
-        val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2).toDouble
-        Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
+      outputSize.flatMap { os =>
+        val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
+        sourceDimensions.flatMap { sd =>
+          val sourceAspectRatio = BigDecimal(sd._1) / BigDecimal(sd._2).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+          Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
 
-        val outputAspectRatio = BigDecimal(width.get) / BigDecimal(height.get).setScale(2).toDouble // TODO naked get
-        Logger.info("Ouptut dimensions " + (width, height) + " aspect ratio: " + outputAspectRatio)
+          val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._1).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+          Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
-        if (sourceAspectRatio != outputAspectRatio) { // TODO rotation effects this decision as well.
-          Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
-        } else {
-          None
+          if (sourceAspectRatio != outputAspectRatio) {
+            // TODO rotation effects this decision as well.
+            Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
+          } else {
+            None
+          }
         }
       }
     }
@@ -140,7 +143,7 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val output: File = File.createTempFile("transcoded", "." + outputFormat)
       val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
-        sizeParameters(width, height) ++
+        sizeParameters(outputSize.map( os => os._1), outputSize.map( os => os._2)) ++
         rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
         Seq("-strict", "experimental", output.getAbsolutePath)
 

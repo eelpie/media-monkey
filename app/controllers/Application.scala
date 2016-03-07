@@ -224,7 +224,13 @@ object Application extends Controller with MediainfoInterpreter {
       } else {
         val sourceFile = request.body
 
-        videoService.transcode(sourceFile.file, of.fileExtension, width, height, rotate).map { r =>
+        val outputSize: Option[(Int, Int)] = width.flatMap { w =>
+          height.map { h =>
+            (w, h)
+          }
+        }
+
+        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate).map { r =>
           sourceFile.clean()
           (r, videoDimensions(mediainfoService.mediainfo(r)))
         }
