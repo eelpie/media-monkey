@@ -112,7 +112,7 @@ object VideoService extends MediainfoInterpreter {
   def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[File] = {
     val mediainfo: Option[Seq[Track]] = mediainfoService.mediainfo(input)
 
-    val rotationToApply = rotation.getOrElse{
+    val rotationToApply = rotation.getOrElse {
       val ir = inferRotation(mediainfo)
       Logger.info("Applying rotation infered from mediainfo: " + ir)
       ir
@@ -128,10 +128,13 @@ object VideoService extends MediainfoInterpreter {
           val outputAspectRatio = BigDecimal(os._1) / BigDecimal(os._1).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
           Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
-          if (sourceAspectRatio != outputAspectRatio) {
-            // TODO rotation effects this decision as well.
+          val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
+          val isRotated = (rotationToApply == 90 || rotationToApply == 270)
+          if (aspectRatiosDiffer || isRotated) {
+            Logger.info("Applying padding")
             Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
           } else {
+            Logger.info("No padding required")
             None
           }
         }
