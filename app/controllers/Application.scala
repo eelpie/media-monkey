@@ -115,16 +115,13 @@ object Application extends Controller with MediainfoInterpreter {
     val sourceFile = request.body
 
     val tikaMetadata: Option[Map[String, String]] = tikaService.meta(sourceFile.file)
-    Logger.info("Tika meta data: " + tikaMetadata)
     val metadata = tikaMetadata.fold(Map[String, String]())( tmd => tmd)
 
     val contentType = metadata.get(CONTENT_TYPE).fold{
-      Logger.info("Falling back to exiftool content type check")
       ExiftoolService.contentType(sourceFile.file)
 
     }(ct => Some(ct))
 
-    Logger.info("Content type: " + contentType)
     contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))){ ct =>
 
       val `type`: Option[String] = inferTypeFromContentType(ct)
@@ -277,10 +274,10 @@ object Application extends Controller with MediainfoInterpreter {
       }
     } { c =>
       eventualResult.map { r =>
-        Logger.info("Calling back to: " + c)
+        Logger.debug("Calling back to: " + c)
         WS.url(c).withHeaders(headersFor(of, r._2): _*).
           post(r._1).map { rp =>
-          Logger.info("Response from callback url " + callback + ": " + rp.status)
+          Logger.debug("Response from callback url " + callback + ": " + rp.status)
           r._1.delete()
         }
       }
