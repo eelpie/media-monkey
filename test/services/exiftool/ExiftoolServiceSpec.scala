@@ -11,7 +11,7 @@ class ExiftoolServiceSpec extends Specification {
 
     val contentType  = ExiftoolService.contentType(videoFile)
 
-    contentType.get must equalTo(Some("video/quicktime"))
+    contentType must equalTo(Some("video/quicktime"))
   }
 
   "can parse exiftool json output" in {
@@ -19,7 +19,7 @@ class ExiftoolServiceSpec extends Specification {
 
     val contentType = ExiftoolService.parse(exiftoolOutput)
 
-    contentType.get must equalTo(Some("video/quicktime"))
+    contentType must equalTo(Some("video/quicktime"))
   }
 
 }
