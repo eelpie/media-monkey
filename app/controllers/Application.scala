@@ -8,6 +8,7 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
+import services.exiftool.ExiftoolService
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
@@ -117,7 +118,7 @@ object Application extends Controller with MediainfoInterpreter {
 
     val metadata = tikaMetadata.fold(Map[String, String]())( tmd => tmd)
 
-    val contentType = metadata.get(CONTENT_TYPE)
+    val contentType = metadata.get(CONTENT_TYPE).fold(ExiftoolService.contentType(sourceFile.file))(ct => Some(ct))
 
     contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))){ ct =>
 
