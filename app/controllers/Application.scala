@@ -237,7 +237,7 @@ object Application extends Controller with MediainfoInterpreter {
   private def inferTypeFromContentType(contentType: String): Option[String] = {
 
     val recognisedImageTypes = supportedImageOutputFormats
-    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
+    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"), OutputFormat("video/x-matroska", "mp4"))  // TODO really bad overloading of output format
 
     if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
       Some("image")
