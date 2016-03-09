@@ -115,11 +115,16 @@ object Application extends Controller with MediainfoInterpreter {
     val sourceFile = request.body
 
     val tikaMetadata: Option[Map[String, String]] = tikaService.meta(sourceFile.file)
-
+    Logger.info("Tika meta data: " + tikaMetadata)
     val metadata = tikaMetadata.fold(Map[String, String]())( tmd => tmd)
 
-    val contentType = metadata.get(CONTENT_TYPE).fold(ExiftoolService.contentType(sourceFile.file))(ct => Some(ct))
+    val contentType = metadata.get(CONTENT_TYPE).fold{
+      Logger.info("Falling back to exiftool content type check")
+      ExiftoolService.contentType(sourceFile.file)
 
+    }(ct => Some(ct))
+
+    Logger.info("Content type: " + contentType)
     contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))){ ct =>
 
       val `type`: Option[String] = inferTypeFromContentType(ct)
