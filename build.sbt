@@ -28,7 +28,7 @@ packageDescription := "Media handling service"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
 
-debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo", "openjdk-8-jdk")
+debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo", "openjdk-8-jdk", "libimage-exiftool-perl")
 
 import com.typesafe.sbt.packager.archetypes.ServerLoader
 
