@@ -7,7 +7,7 @@ import org.specs2.mutable.Specification
 class ExiftoolServiceSpec extends Specification {
 
   "can detect content type of media files" in {
-    val videoFile = new File("IMG_0004.MOV")
+    val videoFile = new File("test/resources/IMG_0004.MOV")
 
     val contentType  = ExiftoolService.contentType(videoFile)
 
