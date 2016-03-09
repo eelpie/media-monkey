@@ -9,7 +9,7 @@ import scala.sys.process.{ProcessLogger, _}
 
 class ExiftoolService {
 
-  def meta(f: File): Option[Map[String, String]] = {
+  def contentType(f: File): Option[String] = {
     val mediainfoCmd = Seq("exiftool", "-json", f.getAbsolutePath)
 
     val out: StringBuilder = new StringBuilder()
@@ -22,11 +22,17 @@ class ExiftoolService {
     val exitValue: Int = process.exitValue() // Blocks until the process completes
 
     if (exitValue == 0) {
-      Some(Json.parse(out.mkString).as[Map[String, String]])
+      parse(out.mkString)
 
     } else {
       Logger.warn("exiftool process failed")
       None
+    }
+  }
+
+  def parse(json: String): Option[String] = {
+    Json.parse(json).\\("MIMEType").headOption.map { j =>
+      j.as[String]
     }
   }
 
