@@ -34,22 +34,7 @@ object Application extends Controller with MediainfoInterpreter {
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
-    val recognisedImageTypes = supportedImageOutputFormats
-    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
-
-    def inferContentTypeSpecificAttributes(metadata: Map[String, String], file: File): Map[String, Any] = {
-
-      def inferType(contentType: Option[String]): Option[String] = {
-        contentType.flatMap { ct =>
-          if (recognisedImageTypes.exists(it => it.mineType == ct)) {
-            Some("image")
-          } else if (recognisedVideoTypes.exists(vt => vt.mineType == ct)) {
-            Some("video")
-          } else {
-            None
-          }
-        }
-      }
+    def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Map[String, Any] = {
 
       def inferImageSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
         val imageDimensions: Option[(Int, Int)] = metadata.get("Image Width").flatMap(iw => {
@@ -92,7 +77,7 @@ object Application extends Controller with MediainfoInterpreter {
         ).flatten
       }
 
-      def inferVideoSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
+      def inferVideoSpecificAttributes(file: File, metadata: Map[String, String]): Seq[(String, Any)] = {
 
         def parseRotation(r: String): Int = {
           r.replaceAll("[^\\d]", "").toInt
@@ -115,59 +100,62 @@ object Application extends Controller with MediainfoInterpreter {
         combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
       }
 
-      val contentType = metadata.get(CONTENT_TYPE)
-
-      val `type`: Option[String] = inferType(contentType)
-
-      val contentTypeSpecificAttributes = `type`.flatMap{ t =>
-        if (t == "image") {
-          Some(inferImageSpecificAttributes(metadata))
-        } else if (t == "video") {
-          Some(inferVideoSpecificAttributes(metadata))
+      val contentTypeSpecificAttributes: Seq[(String, Any)] = if (`type` == "image") {
+          inferImageSpecificAttributes(metadata)
+        } else if (`type` == "video") {
+          inferVideoSpecificAttributes(file, metadata)
         } else {
-          None
+          Seq()
         }
-      }
 
-      val map: Option[Seq[(String, String)]] = `type`.map(t => Seq(("type" -> t)))
-      val map1: Option[Seq[(String, String)]] = contentType.map(ct => Seq(("contentType" -> ct)))
-      val map2: Option[Seq[(String, String)]] = contentType.flatMap(ct => tikaService.suggestedFileExtension(ct).map(e => Seq("fileExtension" -> e)))
-      (contentTypeSpecificAttributes ++
-        map ++
-        map1 ++
-        map2).flatten.toMap
+      contentTypeSpecificAttributes.toMap
     }
 
     val sourceFile = request.body
-    tikaService.meta(sourceFile.file).fold({
-      Future.successful(InternalServerError("Could not process metadata"))
 
-    }) { md =>
-      implicit val writes = new Writes[Map[String, Any]] {
-        override def writes(o: Map[String, Any]): JsValue = {
-          val map = o.map(i => {
-            val value: Any = i._2
-            val json: JsValue = value match {
-              case i: Int => JsNumber(i)
-              case _ => Json.toJson (value.toString)
-            }
-            (i._1, json)
-          }).toList
+    val tikaMetadata: Option[Map[String, String]] = tikaService.meta(sourceFile.file)
 
-          JsObject(map.toList)
+    val metadata = tikaMetadata.fold(Map[String, String]())( tmd => tmd)
+
+    val contentType = metadata.get(CONTENT_TYPE)
+
+    contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))){ ct =>
+
+      val `type`: Option[String] = inferTypeFromContentType(ct)
+
+      `type`.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { t =>
+
+        val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+
+        val stream: FileInputStream = new FileInputStream(sourceFile.file)
+        val md5Hash = DigestUtils.md5Hex(stream)
+        stream.close()
+        sourceFile.clean()
+
+        val summary: Map[String, String] = Seq(
+          Some(("type" -> t)),
+          Some(("contentType" -> ct)),
+          tikaService.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+          Some("md5" -> md5Hash)
+        ).flatten.toMap
+
+        implicit val writes = new Writes[Map[String, Any]] {
+          override def writes(o: Map[String, Any]): JsValue = {
+            val map = o.map(i => {
+              val value: Any = i._2
+              val json: JsValue = value match {
+                case i: Int => JsNumber(i)
+                case _ => Json.toJson(value.toString)
+              }
+              (i._1, json)
+            }).toList
+
+            JsObject(map.toList)
+          }
         }
+
+        Future.successful(Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary)))
       }
-
-      val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(md, request.body.file)
-
-      val stream: FileInputStream = new FileInputStream(sourceFile.file)
-      val md5Checksum = DigestUtils.md5Hex(stream)
-      stream.close()
-      val md5 = Map("md5" -> md5Checksum)
-
-      sourceFile.clean()
-
-      Future.successful(Ok(Json.toJson(md ++ contentTypeSpecificAttributes ++ md5)))
     }
   }
 
@@ -237,6 +225,20 @@ object Application extends Controller with MediainfoInterpreter {
       }
 
       handleResult(of, eventualResult, callback)
+    }
+  }
+
+  private def inferTypeFromContentType(contentType: String): Option[String] = {
+
+    val recognisedImageTypes = supportedImageOutputFormats
+    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(OutputFormat("application/mp4", "mp4"))
+
+    if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
+      Some("image")
+    } else if (recognisedVideoTypes.exists(vt => vt.mineType == contentType)) {
+      Some("video")
+    } else {
+      None
     }
   }
 
