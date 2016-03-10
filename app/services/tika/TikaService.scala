@@ -18,7 +18,10 @@ trait TikaService {
   def meta(f: File): Option[Map[String, String]] = {
     Logger.info("Posting submitted file to Taki for typing")
     val asyncHttpClient: AsyncHttpClient = WS.client.underlying
-    val putBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
+
+    Logger.info("Taki connection timeout is: " + asyncHttpClient.getConfig.getConnectTimeout)
+
+    val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
       addHeader("Accept", "application/json; charset=UTF-8").
       setBody(new FileInputStream(f))
 
@@ -26,8 +29,7 @@ trait TikaService {
 
     if (response.getStatusCode == 200) {
 
-      val tikaJson: JsValue = Json.parse(response.getResponseBody)
-      tikaJson match {
+      Json.parse(response.getResponseBody) match {
         case JsObject(fields) => {
           val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
             val key: String = f._1
