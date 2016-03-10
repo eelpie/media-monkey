@@ -2,6 +2,7 @@ package controllers
 
 import java.io.{File, FileInputStream}
 
+import futures.Retry
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -17,7 +18,7 @@ import services.video.VideoService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object Application extends Controller with MediainfoInterpreter {
+object Application extends Controller with MediainfoInterpreter with Retry {
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -114,7 +115,7 @@ object Application extends Controller with MediainfoInterpreter {
 
     val sourceFile = request.body
 
-    val eventualTikaMetadata: Future[Option[Map[String, String]]] = tikaService.meta(sourceFile.file)
+    val eventualTikaMetadata: Future[Option[Map[String, String]]] = retry(3)(tikaService.meta(sourceFile.file))
 
     eventualTikaMetadata.map { tmdo =>
 
