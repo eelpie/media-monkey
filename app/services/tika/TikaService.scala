@@ -19,13 +19,15 @@ trait TikaService {
     Logger.info("Posting submitted file to Taki for typing")
     val asyncHttpClient: AsyncHttpClient = WS.client.underlying
 
-    Logger.info("Taki connection timeout is: " + asyncHttpClient.getConfig.getConnectTimeout)
-
     val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
       addHeader("Accept", "application/json; charset=UTF-8").
+      setRequestTimeout(10000).
       setBody(new FileInputStream(f))
 
-    val response: Response = asyncHttpClient.executeRequest(putBuilder.build()).get
+    val request = putBuilder.build()
+
+    Logger.info("Taki connection timeout is: " + request.getRequestTimeout)
+    val response: Response = asyncHttpClient.executeRequest(request).get
 
     if (response.getStatusCode == 200) {
 
