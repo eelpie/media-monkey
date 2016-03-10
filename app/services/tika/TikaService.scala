@@ -50,8 +50,13 @@ trait TikaService {
 
   def suggestedFileExtension(contentType: String): Option[String] = {
     val mimeType = MimeTypes.getDefaultMimeTypes.forName(contentType)
-    mimeType.getExtensions.asScala.headOption.map { e =>
+
+    val tikaSuggestion = mimeType.getExtensions.asScala.headOption.map { e =>
       e.replaceFirst("\\.", "")
+    }
+
+    tikaSuggestion.map { e =>
+      if (e == "mp4s") "mp4" else e
     }
   }
 
