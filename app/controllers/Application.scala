@@ -30,7 +30,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
   val mediainfoService: MediainfoService = MediainfoService
-  val tikaService = TikaService
+  val tika = TikaService
+  val exiftool = ExiftoolService
   val imageService = ImageService
   val videoService = VideoService
 
@@ -68,7 +69,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         })
 
         val orientation = orientedImageDimensions.map(im => {
-         if (im._1 > im._2) "landscape" else "portrait"
+          if (im._1 > im._2) "landscape" else "portrait"
         })
 
         Seq(
@@ -91,7 +92,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         val rotation = inferRotation(mediainfoTracks)
 
         val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
-          ts.filter( t => t.trackType == "General" || t.trackType == "Video").map { t =>  // TODO work out a good format to preserver all of this information
+          ts.filter(t => t.trackType == "General" || t.trackType == "Video").map { t => // TODO work out a good format to preserver all of this information
             t.fields.toSeq
           }.flatten
         }
@@ -103,65 +104,66 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       }
 
       val contentTypeSpecificAttributes: Seq[(String, Any)] = if (`type` == "image") {
-          inferImageSpecificAttributes(metadata)
-        } else if (`type` == "video") {
-          inferVideoSpecificAttributes(file, metadata)
-        } else {
-          Seq()
-        }
+        inferImageSpecificAttributes(metadata)
+      } else if (`type` == "video") {
+        inferVideoSpecificAttributes(file, metadata)
+      } else {
+        Seq()
+      }
 
       contentTypeSpecificAttributes.toMap
     }
 
     val sourceFile = request.body
 
-    val eventualTikaMetadata: Future[Option[Map[String, String]]] = retry(3)(tikaService.meta(sourceFile.file))
+    val eventualTikaMetadata: Future[Option[Map[String, String]]] = retry(3)(tika.meta(sourceFile.file))
 
-    eventualTikaMetadata.map { tmdo =>
+    eventualTikaMetadata.flatMap { tmdo =>
 
       val metadata = tmdo.fold(Map[String, String]())(tmd => tmd)
 
-      val contentType = metadata.get(CONTENT_TYPE).fold {
-        ExiftoolService.contentType(sourceFile.file)
+      val eventualContentType: Future[Option[String]] = metadata.get(CONTENT_TYPE).fold {
+        exiftool.contentType(sourceFile.file)
+      }(ct => Future.successful(Some(ct)))
 
-      }(ct => Some(ct))
+      eventualContentType.map { contentType =>
+        contentType.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { ct =>
 
-      contentType.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { ct =>
+          val `type`: Option[String] = inferTypeFromContentType(ct)
 
-        val `type`: Option[String] = inferTypeFromContentType(ct)
+          `type`.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { t =>
 
-        `type`.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { t =>
+            val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
 
-          val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+            val stream: FileInputStream = new FileInputStream(sourceFile.file)
+            val md5Hash = DigestUtils.md5Hex(stream)
+            stream.close()
+            sourceFile.clean()
 
-          val stream: FileInputStream = new FileInputStream(sourceFile.file)
-          val md5Hash = DigestUtils.md5Hex(stream)
-          stream.close()
-          sourceFile.clean()
+            val summary: Map[String, String] = Seq(
+              Some(("type" -> t)),
+              Some(("contentType" -> ct)),
+              tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+              Some("md5" -> md5Hash)
+            ).flatten.toMap
 
-          val summary: Map[String, String] = Seq(
-            Some(("type" -> t)),
-            Some(("contentType" -> ct)),
-            tikaService.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
-            Some("md5" -> md5Hash)
-          ).flatten.toMap
+            implicit val writes = new Writes[Map[String, Any]] {
+              override def writes(o: Map[String, Any]): JsValue = {
+                val map = o.map(i => {
+                  val value: Any = i._2
+                  val json: JsValue = value match {
+                    case i: Int => JsNumber(i)
+                    case _ => Json.toJson(value.toString)
+                  }
+                  (i._1, json)
+                }).toList
 
-          implicit val writes = new Writes[Map[String, Any]] {
-            override def writes(o: Map[String, Any]): JsValue = {
-              val map = o.map(i => {
-                val value: Any = i._2
-                val json: JsValue = value match {
-                  case i: Int => JsNumber(i)
-                  case _ => Json.toJson(value.toString)
-                }
-                (i._1, json)
-              }).toList
-
-              JsObject(map.toList)
+                JsObject(map.toList)
+              }
             }
-          }
 
-          Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+            Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+          }
         }
       }
     }
