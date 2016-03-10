@@ -238,7 +238,8 @@ object Application extends Controller with MediainfoInterpreter {
       OutputFormat("application/mp4", "mp4"),
       OutputFormat("video/x-matroska", "mp4"),
       OutputFormat("video/mpeg", "mp4"),
-      OutputFormat("video/3gpp", "mp4")
+      OutputFormat("video/3gpp", "mp4"),
+      OutputFormat("video/m2ts", "mp4")
     )  // TODO really bad overloading of output format
 
     if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
