@@ -2,10 +2,11 @@ package services.images
 
 import java.io.File
 
-import org.im4java.core.{Info, ConvertCmd, IMOperation}
+import org.im4java.core.{ConvertCmd, IMOperation, Info}
+import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.concurrent.Akka
 import play.api.Play.current
+import play.api.libs.concurrent.Akka
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -47,12 +48,14 @@ class ImageService {
 
     Future {
       val output: File = File.createTempFile("image", "." + outputFormat)
-      Logger.info("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
-
+      Logger.debug("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
       try {
+        val start = DateTime.now
         val cmd: ConvertCmd = new ConvertCmd()
         cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, output.getAbsolutePath())
-        Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
+
+        val duration = DateTime.now.getMillis - start.getMillis
+        Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath() + " in " + duration + "ms")
         output
 
       } catch {
