@@ -37,7 +37,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
-    def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Map[String, Any] = {
+    def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Map[String, Any]] = {
 
       def inferImageSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
         val imageDimensions: Option[(Int, Int)] = metadata.get("Image Width").flatMap(iw => {
@@ -80,38 +80,40 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         ).flatten
       }
 
-      def inferVideoSpecificAttributes(file: File, metadata: Map[String, String]): Seq[(String, Any)] = {
+      def inferVideoSpecificAttributes(file: File, metadata: Map[String, String]): Future[Seq[(String, Any)]] = {
 
         def parseRotation(r: String): Int = {
           r.replaceAll("[^\\d]", "").toInt
         }
 
-        val mediainfoTracks = mediainfoService.mediainfo(file)
+        mediainfoService.mediainfo(file).map { mit =>
+          val videoTrackDimensions = videoDimensions(mit)
+          val rotation = inferRotation(mit)
 
-        val videoTrackDimensions = videoDimensions(mediainfoTracks)
-        val rotation = inferRotation(mediainfoTracks)
+          val trackFields: Option[Seq[(String, String)]] = mit.map { ts =>
+            ts.filter(t => t.trackType == "General" || t.trackType == "Video").map { t => // TODO work out a good format to preserver all of this information
+              t.fields.toSeq
+            }.flatten
+          }
 
-        val trackFields: Option[Seq[(String, String)]] = mediainfoTracks.map { ts =>
-          ts.filter(t => t.trackType == "General" || t.trackType == "Video").map { t => // TODO work out a good format to preserver all of this information
-            t.fields.toSeq
-          }.flatten
+          val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
+          val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
+
+          combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
         }
-
-        val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
-        val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
-
-        combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
       }
 
-      val contentTypeSpecificAttributes: Seq[(String, Any)] = if (`type` == "image") {
-        inferImageSpecificAttributes(metadata)
+      val eventualContentTypeSpecificAttributes: Future[Seq[(String, Any)]] = if (`type` == "image") {
+        Future.successful(inferImageSpecificAttributes(metadata))
       } else if (`type` == "video") {
         inferVideoSpecificAttributes(file, metadata)
       } else {
-        Seq()
+        Future.successful(Seq())
       }
 
-      contentTypeSpecificAttributes.toMap
+      eventualContentTypeSpecificAttributes.map { i =>
+        i.toMap
+      }
     }
 
     val sourceFile = request.body
@@ -126,43 +128,43 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         exiftool.contentType(sourceFile.file)
       }(ct => Future.successful(Some(ct)))
 
-      eventualContentType.map { contentType =>
-        contentType.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { ct =>
+      eventualContentType.flatMap { contentType =>
+        contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { ct =>
 
           val `type`: Option[String] = inferTypeFromContentType(ct)
 
-          `type`.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { t =>
+          `type`.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { t =>
 
-            val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+            inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
+              val stream: FileInputStream = new FileInputStream(sourceFile.file)
+              val md5Hash = DigestUtils.md5Hex(stream)
+              stream.close()
+              sourceFile.clean()
 
-            val stream: FileInputStream = new FileInputStream(sourceFile.file)
-            val md5Hash = DigestUtils.md5Hex(stream)
-            stream.close()
-            sourceFile.clean()
+              val summary: Map[String, String] = Seq(
+                Some(("type" -> t)),
+                Some(("contentType" -> ct)),
+                tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+                Some("md5" -> md5Hash)
+              ).flatten.toMap
 
-            val summary: Map[String, String] = Seq(
-              Some(("type" -> t)),
-              Some(("contentType" -> ct)),
-              tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
-              Some("md5" -> md5Hash)
-            ).flatten.toMap
+              implicit val writes = new Writes[Map[String, Any]] {
+                override def writes(o: Map[String, Any]): JsValue = {
+                  val map = o.map(i => {
+                    val value: Any = i._2
+                    val json: JsValue = value match {
+                      case i: Int => JsNumber(i)
+                      case _ => Json.toJson(value.toString)
+                    }
+                    (i._1, json)
+                  }).toList
 
-            implicit val writes = new Writes[Map[String, Any]] {
-              override def writes(o: Map[String, Any]): JsValue = {
-                val map = o.map(i => {
-                  val value: Any = i._2
-                  val json: JsValue = value match {
-                    case i: Int => JsNumber(i)
-                    case _ => Json.toJson(value.toString)
-                  }
-                  (i._1, json)
-                }).toList
-
-                JsObject(map.toList)
+                  JsObject(map.toList)
+                }
               }
-            }
 
-            Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+              Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+            }
           }
         }
       }
@@ -228,9 +230,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           }
         }
 
-        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate).map { r =>
+        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate).flatMap { r =>
           sourceFile.clean()
-          (r, videoDimensions(mediainfoService.mediainfo(r)))
+          mediainfoService.mediainfo(r).map { mi =>
+            (r, videoDimensions(mi))
+          }
         }
       }
 
