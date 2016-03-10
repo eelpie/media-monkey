@@ -114,50 +114,54 @@ object Application extends Controller with MediainfoInterpreter {
 
     val sourceFile = request.body
 
-    val tikaMetadata: Option[Map[String, String]] = tikaService.meta(sourceFile.file)
-    val metadata = tikaMetadata.fold(Map[String, String]())( tmd => tmd)
+    val eventualTikaMetadata: Future[Option[Map[String, String]]] = tikaService.meta(sourceFile.file)
 
-    val contentType = metadata.get(CONTENT_TYPE).fold{
-      ExiftoolService.contentType(sourceFile.file)
+    eventualTikaMetadata.map { tmdo =>
 
-    }(ct => Some(ct))
+      val metadata = tmdo.fold(Map[String, String]())(tmd => tmd)
 
-    contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))){ ct =>
+      val contentType = metadata.get(CONTENT_TYPE).fold {
+        ExiftoolService.contentType(sourceFile.file)
 
-      val `type`: Option[String] = inferTypeFromContentType(ct)
+      }(ct => Some(ct))
 
-      `type`.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { t =>
+      contentType.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { ct =>
 
-        val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+        val `type`: Option[String] = inferTypeFromContentType(ct)
 
-        val stream: FileInputStream = new FileInputStream(sourceFile.file)
-        val md5Hash = DigestUtils.md5Hex(stream)
-        stream.close()
-        sourceFile.clean()
+        `type`.fold(UnsupportedMediaType(Json.toJson("Unsupported media type"))) { t =>
 
-        val summary: Map[String, String] = Seq(
-          Some(("type" -> t)),
-          Some(("contentType" -> ct)),
-          tikaService.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
-          Some("md5" -> md5Hash)
-        ).flatten.toMap
+          val contentTypeSpecificAttributes: Map[String, Any] = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
 
-        implicit val writes = new Writes[Map[String, Any]] {
-          override def writes(o: Map[String, Any]): JsValue = {
-            val map = o.map(i => {
-              val value: Any = i._2
-              val json: JsValue = value match {
-                case i: Int => JsNumber(i)
-                case _ => Json.toJson(value.toString)
-              }
-              (i._1, json)
-            }).toList
+          val stream: FileInputStream = new FileInputStream(sourceFile.file)
+          val md5Hash = DigestUtils.md5Hex(stream)
+          stream.close()
+          sourceFile.clean()
 
-            JsObject(map.toList)
+          val summary: Map[String, String] = Seq(
+            Some(("type" -> t)),
+            Some(("contentType" -> ct)),
+            tikaService.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+            Some("md5" -> md5Hash)
+          ).flatten.toMap
+
+          implicit val writes = new Writes[Map[String, Any]] {
+            override def writes(o: Map[String, Any]): JsValue = {
+              val map = o.map(i => {
+                val value: Any = i._2
+                val json: JsValue = value match {
+                  case i: Int => JsNumber(i)
+                  case _ => Json.toJson(value.toString)
+                }
+                (i._1, json)
+              }).toList
+
+              JsObject(map.toList)
+            }
           }
-        }
 
-        Future.successful(Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary)))
+          Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+        }
       }
     }
   }

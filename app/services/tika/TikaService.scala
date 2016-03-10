@@ -10,45 +10,48 @@ import play.api.libs.ws.WS
 import play.api.{Logger, Play}
 
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.{global => ec}
 
 trait TikaService {
 
   val tikaUrl: String
 
-  def meta(f: File): Option[Map[String, String]] = {
-    Logger.info("Posting submitted file to Taki for typing")
-    val asyncHttpClient: AsyncHttpClient = WS.client.underlying
+  def meta(f: File): Future[Option[Map[String, String]]] = {
+    Future {
+      Logger.info("Posting submitted file to Taki for typing")
+      val asyncHttpClient: AsyncHttpClient = WS.client.underlying
 
-    val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
-      addHeader("Accept", "application/json; charset=UTF-8").
-      setRequestTimeout(10000).
-      setBody(new FileInputStream(f))
+      val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
+        addHeader("Accept", "application/json; charset=UTF-8").
+        setRequestTimeout(10000).
+        setBody(new FileInputStream(f))
 
-    val request = putBuilder.build()
+      val request = putBuilder.build()
 
-    Logger.info("Taki connection timeout is: " + request.getRequestTimeout)
-    val response: Response = asyncHttpClient.executeRequest(request).get
+      Logger.info("Taki connection timeout is: " + request.getRequestTimeout)
+      val response: Response = asyncHttpClient.executeRequest(request).get
 
-    if (response.getStatusCode == 200) {
-
-      Json.parse(response.getResponseBody) match {
-        case JsObject(fields) => {
-          val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
-            val key: String = f._1
-            val value: Option[String] = f._2 match {
-              case JsString(j) => Some(j.toString())
-              case _ => None
-            }
-            value.map(v => (key, v))
-          }).flatten.toMap
-          Some(toMap)
+      if (response.getStatusCode == 200) {
+        Json.parse(response.getResponseBody) match {
+          case JsObject(fields) => {
+            val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
+              val key: String = f._1
+              val value: Option[String] = f._2 match {
+                case JsString(j) => Some(j.toString())
+                case _ => None
+              }
+              value.map(v => (key, v))
+            }).flatten.toMap
+            Some(toMap)
+          }
+          case _ => None
         }
-        case _ => None
-      }
 
-    } else {
-      Logger.warn("Unexpected response from Tika: " + response.getStatusCode + " / " + response.getResponseBody)
-      Some(Map())
+      } else {
+        Logger.warn("Unexpected response from Tika: " + response.getStatusCode + " / " + response.getResponseBody)
+        Some(Map())
+      }
     }
   }
 
@@ -67,7 +70,5 @@ trait TikaService {
 }
 
 object TikaService extends TikaService {
-
   override lazy val tikaUrl = Play.configuration.getString("tika.url").get
-
 }
