@@ -214,7 +214,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     val sourceFile = request.body
     val eventualResult = videoService.audio(sourceFile.file).map { result =>
       sourceFile.clean()
-      (result, Some(imageService.info(result)))
+      (result, None)
     }
     handleResult(audioOutputFormat, eventualResult, callback)
   }
