@@ -121,6 +121,26 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
+  def audio(input: File): Future[File] = {
+    Future {
+      val outputFormat = "wav"
+      val output: File = File.createTempFile("audio", "." + outputFormat)
+      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, output.getAbsolutePath)
+
+      Logger.info("avconv command: " + avconvCmd)
+
+      val process: Process = avconvCmd.run(logger)        // Blocks until the process completes
+      if (process.exitValue() == 0) {
+        Logger.info("Transcoded video output to: " + output.getAbsolutePath)
+        output
+
+      } else {
+        Logger.warn("avconv process failed")
+        throw new RuntimeException("avconv process failed")
+      }
+    }
+  }
+
   def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[File] = {
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
 

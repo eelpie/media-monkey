@@ -26,6 +26,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   case class OutputFormat(mineType: String, fileExtension: String)
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
+  val audioOutputFormat = OutputFormat("audio/wav", "wav")
 
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
@@ -208,6 +209,16 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       handleResult(of, eventualResult, callback)
     }
   }
+
+  def videoAudio(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+    val sourceFile = request.body
+    val eventualResult = videoService.audio(sourceFile.file).map { result =>
+      sourceFile.clean()
+      (result, Some(imageService.info(result)))
+    }
+    handleResult(audioOutputFormat, eventualResult, callback)
+  }
+
 
   def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
