@@ -125,7 +125,7 @@ object VideoService extends MediainfoInterpreter {
     Future {
       val outputFormat = "wav"
       val output: File = File.createTempFile("audio", "." + outputFormat)
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, output.getAbsolutePath)
+      val avconvCmd = Seq("avconv", "-y", "-vn", "-i", input.getAbsolutePath, output.getAbsolutePath)
 
       Logger.info("Processing video audio track")
       Logger.info("avconv command: " + avconvCmd)
