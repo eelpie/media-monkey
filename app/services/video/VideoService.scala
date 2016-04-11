@@ -27,7 +27,7 @@ object VideoService extends MediainfoInterpreter {
         ir
       }
 
-      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+      implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
       Future {
         val output: File = File.createTempFile("thumbnail", "." + outputFormat)
@@ -70,7 +70,7 @@ object VideoService extends MediainfoInterpreter {
         ir
       }
 
-      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+      implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
       Future {
         val output: File = File.createTempFile("strip", "")

@@ -173,7 +173,6 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   }
 
   def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
-
     val width = w.getOrElse(800)
     val height = h.getOrElse(600)
     val rotationToApply = rotate.getOrElse(0)
@@ -184,9 +183,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       val sourceFile = request.body
       // TODO no error handling
 
-      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).map { result =>
+      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).flatMap { result =>
         sourceFile.clean()
-        (result, Some(imageService.info(result)))
+        imageService.info(result).map { dimensions =>
+          (result, Some(dimensions))
+        }
       }
 
       handleResult(of, eventualResult, callback)
@@ -201,9 +202,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       val sourceFile = request.body
       // TODO no error handling
 
-      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, rotate).map { result =>
+      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { result =>
         sourceFile.clean()
-        (result, Some(imageService.info(result)))
+        imageService.info(result).map { dimensions =>
+          (result, Some(dimensions))
+        }
       }
 
       handleResult(of, eventualResult, callback)
@@ -226,10 +229,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
         val sourceFile = request.body
-
-        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, rotate).map { r =>
+        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { r =>
           sourceFile.clean()
-          (r, Some(imageService.info(r)))
+          imageService.info(r).map { dimensions =>
+            (r, Some(dimensions))
+          }
         }
 
       } else {

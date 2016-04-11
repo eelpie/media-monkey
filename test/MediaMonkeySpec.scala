@@ -1,4 +1,4 @@
-import java.io.{FileOutputStream, BufferedOutputStream, File}
+import java.io.File
 
 import org.specs2.mutable._
 import play.api.Play.current
@@ -7,8 +7,8 @@ import play.api.libs.ws.{WS, WSResponse}
 import play.api.test.Helpers._
 import play.api.test._
 
+import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{Await, Future}
 
 class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 

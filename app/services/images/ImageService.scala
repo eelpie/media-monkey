@@ -12,15 +12,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ImageService {
 
-  implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
-
-  def info(input: File): (Int, Int) = {
-    val imageInfo: Info = new Info(input.getAbsolutePath, true)
-    (imageInfo.getImageWidth, imageInfo.getImageHeight)
+  def info(input: File): Future[(Int, Int)] = {
+    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+    Future {
+      val imageInfo: Info = new Info(input.getAbsolutePath, true)
+      (imageInfo.getImageWidth, imageInfo.getImageHeight)
+    }
   }
 
   def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[File] = {
-
     def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {
         val op: IMOperation = new IMOperation()
@@ -46,6 +46,7 @@ class ImageService {
       }
     }
 
+    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
     Future {
       val output: File = File.createTempFile("image", "." + outputFormat)
       Logger.debug("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
