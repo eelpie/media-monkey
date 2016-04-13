@@ -28,10 +28,7 @@ trait TikaService {
         setBody(new FileInputStream(f))
 
       val request = putBuilder.build()
-
-      Logger.info("Taki connection timeout is: " + request.getRequestTimeout)
       val response: Response = asyncHttpClient.executeRequest(request).get
-
       if (response.getStatusCode == 200) {
         Json.parse(response.getResponseBody) match {
           case JsObject(fields) => {
