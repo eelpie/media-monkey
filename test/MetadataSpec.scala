@@ -41,6 +41,19 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     }
   }
 
+  "should indicate unsupported formats" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/test.txt"))
+
+      val response = Await.result(eventualResponse, tenSeconds)
+
+      response.status must equalTo(UNSUPPORTED_MEDIA_TYPE)
+
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "contentType").toOption.get.as[String] must equalTo("text/plain; charset=ISO-8859-1")
+    }
+  }
+
   "image size and orientation should be summarised" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))

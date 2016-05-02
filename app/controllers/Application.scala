@@ -134,7 +134,24 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
           val `type`: Option[String] = inferTypeFromContentType(ct)
 
-          `type`.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { t =>
+          Logger.info("Infered type from content type: " + `type` + " / " + ct)
+
+          `type`.fold{
+
+            val stream: FileInputStream = new FileInputStream(sourceFile.file)
+            val md5Hash = DigestUtils.md5Hex(stream)
+            stream.close()
+            sourceFile.clean()
+
+            val summary: Map[String, String] = Seq(
+              Some(("contentType" -> ct)),
+              tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+              Some("md5" -> md5Hash)
+            ).flatten.toMap
+
+            Future.successful(UnsupportedMediaType(Json.toJson(metadata ++ summary)))
+
+          } { t =>
 
             inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
               val stream: FileInputStream = new FileInputStream(sourceFile.file)
