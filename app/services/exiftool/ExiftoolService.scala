@@ -23,10 +23,10 @@ class ExiftoolService {
       val process: Process = mediainfoCmd.run(logger)
 
       val exitValue: Int = process.exitValue() // Blocks until the process completes
-      Logger.info("exiftool exit value: " + exitValue)
+      Logger.debug("exiftool exit value: " + exitValue)
       if (exitValue == 0) {
         val json: String = out.mkString
-        Logger.info("exiftool output: " + json)
+        Logger.debug("exiftool output: " + json)
         parse(json)
 
       } else {

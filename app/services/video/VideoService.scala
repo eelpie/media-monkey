@@ -13,7 +13,7 @@ import scala.sys.process.{ProcessLogger, _}
 
 object VideoService extends MediainfoInterpreter {
 
-  val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
+  val logger: ProcessLogger = ProcessLogger(l => Logger.debug("avconv: " + l))
 
   val mediainfoService = MediainfoService
 
