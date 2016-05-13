@@ -154,7 +154,7 @@ object VideoService extends MediainfoInterpreter {
         val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
           sizeParameters(outputSize.map(os => os._1), outputSize.map(os => os._2)) ++
           rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
-          Seq("-b:a", "256k", "-strict", "experimental", output.getAbsolutePath)
+          Seq("-b:a", "128k", "-strict", "experimental", output.getAbsolutePath)
 
         Logger.info("avconv command: " + avconvCmd)
 
