@@ -225,7 +225,6 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
-      // TODO no error handling
 
       val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { ro =>
         sourceFile.clean()
@@ -253,6 +252,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       ro.fold {
         val eventualNone: Option[(File, Option[(Int, Int)])] = None
         eventualNone
+
       }{ r =>
         val noDimensions: Option[(Int, Int)] = None
         Some(r, noDimensions)
@@ -292,26 +292,20 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           }
         }
 
-        val eventualMaybeOutputFile = videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate)
-
-        val a: Future[Option[(File, Option[(Int, Int)])]] = eventualMaybeOutputFile.flatMap { ro =>
+        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate).flatMap { ro =>
           sourceFile.clean()
 
-          val e: Future[Option[(File, Option[(Int, Int)])]] = ro.fold {
+          ro.fold {
             val eventualNone: Option[(File, Option[(Int, Int)])] = None
             Future.successful(eventualNone)
 
           } { r =>
-            val t: Future[Option[(File, Option[(Int, Int)])]] = mediainfoService.mediainfo(r).map { mi =>
-              val u: Option[(File, Option[(Int, Int)])] = Some(r, videoDimensions(mi))
-              u
+            mediainfoService.mediainfo(r).map { mi =>
+              Some(r, videoDimensions(mi))
             }
-            t
           }
-          e
 
         }
-        a
       }
 
       handleResult(of, eventualResult, callback)
