@@ -137,24 +137,21 @@ object VideoService extends MediainfoInterpreter {
     }
   }
 
-  def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[File] = {
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
-    mediainfoService.mediainfo(input).flatMap { mediainfo =>
-      val rotationToApply = rotation.getOrElse {
-        val ir = inferRotation(mediainfo)
-        Logger.info("Applying rotation infered from mediainfo: " + ir)
-        ir
-      }
+  def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[Option[File]] = {
 
+    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+
+    mediainfoService.mediainfo(input).flatMap { mediainfo =>
+      val rotationToApply = rotation.getOrElse(inferRotation(mediainfo))
       val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
       val possiblePadding = padding(sourceDimensions, outputSize, rotationToApply)
 
       Future {
-        val output: File = File.createTempFile("transcoded", "." + outputFormat)
+        val outputFile = File.createTempFile("transcoded", "." + outputFormat)
         val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
           sizeParameters(outputSize.map(os => os._1), outputSize.map(os => os._2)) ++
           rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
-          Seq("-b:a", "128k", "-strict", "experimental", output.getAbsolutePath)
+          Seq("-b:a", "128k", "-strict", "experimental", outputFile.getAbsolutePath)
 
         Logger.info("avconv command: " + avconvCmd)
 
@@ -162,12 +159,13 @@ object VideoService extends MediainfoInterpreter {
         val exitValue: Int = process.exitValue() // Blocks until the process completes
 
         if (exitValue == 0) {
-          Logger.info("Transcoded video output to: " + output.getAbsolutePath)
-          output
+          Logger.info("Transcoded video output to: " + outputFile.getAbsolutePath)
+          Some(outputFile)
 
         } else {
-          Logger.warn("avconv process failed")
-          throw new RuntimeException("avconv process failed")
+          Logger.warn("avconv process failed; deleting output file")
+          outputFile.delete
+          None
         }
       }
     }
