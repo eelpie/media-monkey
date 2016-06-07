@@ -17,7 +17,7 @@ object VideoService extends MediainfoInterpreter {
 
   val mediainfoService = MediainfoService
 
-  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[File] = {
+  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[Option[File]] = {
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
@@ -48,17 +48,18 @@ object VideoService extends MediainfoInterpreter {
 
         if (exitValue == 0) {
           Logger.info("Thumbnail output to: " + output.getAbsolutePath)
-          output
+          Some(output)
 
         } else {
           Logger.warn("avconv process failed")
-          throw new RuntimeException("avconv process failed")
+          output.delete
+          None
         }
       }
     }
   }
 
-  def strip(input: File, outputFormat: String, width: Int, height: Int, rotation: Option[Int]): Future[File] = {
+  def strip(input: File, outputFormat: String, width: Int, height: Int, rotation: Option[Int]): Future[Option[File]] = {
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
@@ -98,25 +99,26 @@ object VideoService extends MediainfoInterpreter {
             val cmd: ConvertCmd = new ConvertCmd()
             cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath()))
             Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
-            output
+            Some(output)
 
           } catch {
             case e: Exception => {
               Logger.error("Exception while executing IM operation", e)
-              output.delete()
-              throw e
+              output.delete
+              None
             }
           }
 
         } else {
           Logger.warn("avconv process failed")
-          throw new RuntimeException("avconv process failed")
+          output.delete
+          None
         }
       }
     }
   }
 
-  def audio(input: File): Future[File] = {
+  def audio(input: File): Future[Option[File]] = {
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
     Future {
       val outputFormat = "wav"
@@ -128,11 +130,12 @@ object VideoService extends MediainfoInterpreter {
       val process: Process = avconvCmd.run(logger)        // Blocks until the process completes
       if (process.exitValue() == 0) {
         Logger.info("Transcoded video output to: " + output.getAbsolutePath)
-        output
+        Some(output)
 
       } else {
         Logger.warn("avconv process failed")
-        throw new RuntimeException("avconv process failed")
+        output.delete
+        None
       }
     }
   }
@@ -189,9 +192,11 @@ object VideoService extends MediainfoInterpreter {
 
         val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
         val isRotated = (rotationToApply == 90 || rotationToApply == 270)
+
         if (aspectRatiosDiffer || isRotated) {
           Logger.info("Applying padding")
           Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
+
         } else {
           Logger.info("No padding required")
           None

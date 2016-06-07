@@ -20,7 +20,7 @@ class ImageService {
     }
   }
 
-  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[File] = {
+  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
     def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {
         val op: IMOperation = new IMOperation()
@@ -57,13 +57,13 @@ class ImageService {
 
         val duration = DateTime.now.getMillis - start.getMillis
         Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath() + " in " + duration + "ms")
-        output
+        Some(output)
 
       } catch {
         case e: Exception => {
           Logger.error("Exception while executing IM operation", e)
           output.delete()
-          throw e
+          None
         }
       }
     }
