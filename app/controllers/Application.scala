@@ -357,7 +357,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
         } { r =>
           Ok.sendFile(r._1, onClose = () => {
-            Logger.info("Deleting tmp file after sending file: " + r._1)
+            Logger.debug("Deleting tmp file after sending file: " + r._1)
             r._1.delete()
           }).withHeaders(headersFor(of, r._2): _*)
         }
@@ -373,7 +373,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           WS.url(c).withHeaders(headersFor(of, r._2): _*).
             post(r._1).map { rp =>
             Logger.debug("Response from callback url " + callback + ": " + rp.status)
-            Logger.info("Deleting tmp file after calling back: " + r._1)
+            Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
           }
         }
