@@ -28,6 +28,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
   val audioOutputFormat = OutputFormat("audio/wav", "wav")
 
+  val eventualNone: Option[(File, Option[(Int, Int)], OutputFormat)] = None
+
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
   val mediainfoService: MediainfoService = MediainfoService
@@ -205,17 +207,16 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         sourceFile.clean()
 
         ro.fold {
-          val eventualNone: Option[(File, Option[(Int, Int)])] = None
           Future.successful(eventualNone)
 
         } { r =>
           imageService.info(r).map { dimensions =>
-            Some(r, Some(dimensions))
+            Some(r, Some(dimensions), of)
           }
         }
       }
 
-      handleResult(of, eventualResult, callback)
+      handleResult(eventualResult, callback)
     }
   }
 
@@ -230,17 +231,16 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         sourceFile.clean()
 
         ro.fold {
-          val eventualNone: Option[(File, Option[(Int, Int)])] = None
           Future.successful(eventualNone)
 
         } { r =>
           imageService.info(r).map { dimensions =>
-            Some(r, Some(dimensions))
+            Some(r, Some(dimensions), of)
           }
         }
       }
 
-      handleResult(of, eventualResult, callback)
+      handleResult(eventualResult, callback)
     }
   }
 
@@ -250,15 +250,14 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       sourceFile.clean()
 
       ro.fold {
-        val eventualNone: Option[(File, Option[(Int, Int)])] = None
         eventualNone
 
       }{ r =>
         val noDimensions: Option[(Int, Int)] = None
-        Some(r, noDimensions)
+        Some(r, noDimensions, audioOutputFormat)
       }
     }
-    handleResult(audioOutputFormat, eventualResult, callback)
+    handleResult(eventualResult, callback)
   }
 
 
@@ -269,22 +268,21 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
+
         videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { ro =>
           sourceFile.clean()
 
           ro.fold {
-            val eventualNone: Option[(File, Option[(Int, Int)])] = None
             Future.successful(eventualNone)
 
           } { r =>
             imageService.info(r).map { dimensions =>
-              Some(r, Some(dimensions))
+              Some(r, Some(dimensions), of)
             }
           }
         }
 
       } else {
-        val sourceFile = request.body
 
         val outputSize: Option[(Int, Int)] = width.flatMap { w =>
           height.map { h =>
@@ -296,19 +294,17 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           sourceFile.clean()
 
           ro.fold {
-            val eventualNone: Option[(File, Option[(Int, Int)])] = None
             Future.successful(eventualNone)
 
           } { r =>
             mediainfoService.mediainfo(r).map { mi =>
-              Some(r, videoDimensions(mi))
+              Some(r, videoDimensions(mi), of)
             }
           }
-
         }
       }
 
-      handleResult(of, eventualResult, callback)
+      handleResult(eventualResult, callback)
     }
   }
 
@@ -344,18 +340,20 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     })
   }
 
-  private def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
-    val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
-    Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
-  }
+  private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String]): Future[Result] = {
 
-  private def handleResult(of: OutputFormat, eventualResult: Future[Option[(File, Option[(Int, Int)])]], callback: Option[String]): Future[Result] = {  // TODO of should be from result ping/pong
+    def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
+      val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
+      Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
+    }
+
     callback.fold {
       eventualResult.map { ro =>
         ro.fold {
           UnprocessableEntity(Json.toJson("Could not process file"))
 
         } { r =>
+          val of: OutputFormat = r._3
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
             r._1.delete()
@@ -370,6 +368,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
         } { r =>
           Logger.debug("Calling back to: " + c)
+          val of: OutputFormat = r._3
           WS.url(c).withHeaders(headersFor(of, r._2): _*).
             post(r._1).map { rp =>
             Logger.debug("Response from callback url " + callback + ": " + rp.status)
