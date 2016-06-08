@@ -21,6 +21,7 @@ class ImageService {
   }
 
   def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
+
     def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {
         val op: IMOperation = new IMOperation()
@@ -47,22 +48,23 @@ class ImageService {
     }
 
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+
     Future {
-      val output: File = File.createTempFile("image", "." + outputFormat)
-      Logger.debug("Applying ImageMagik operation to output file: " + output.getAbsoluteFile)
+      val outputFile = File.createTempFile("image", "." + outputFormat)
+      Logger.debug("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile)
       try {
         val start = DateTime.now
         val cmd: ConvertCmd = new ConvertCmd()
-        cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, output.getAbsolutePath())
+        cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, outputFile.getAbsolutePath())
 
         val duration = DateTime.now.getMillis - start.getMillis
-        Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath() + " in " + duration + "ms")
-        Some(output)
+        Logger.info("Completed ImageMagik operation " + Seq(width, height, rotate, fill) + " output to: " + outputFile.getAbsolutePath() + " in " + duration + "ms")
+        Some(outputFile)
 
       } catch {
         case e: Exception => {
           Logger.error("Exception while executing IM operation", e)
-          output.delete()
+          outputFile.delete()
           None
         }
       }
