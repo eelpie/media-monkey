@@ -33,3 +33,8 @@ debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "media
 import com.typesafe.sbt.packager.archetypes.ServerLoader
 
 serverLoading in Debian:= ServerLoader.Systemd
+
+javaOptions in Universal ++= Seq(
+  // -J params will be added as jvm parameters
+  "-J-Xmx2048m"
+)
