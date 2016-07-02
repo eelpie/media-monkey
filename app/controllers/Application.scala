@@ -317,7 +317,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       OutputFormat("video/mpeg", "mp4"),
       OutputFormat("video/3gpp", "mp4"),
       OutputFormat("video/m2ts", "mp4"),
-      OutputFormat("video/x-m4v", "mp4")
+      OutputFormat("video/x-m4v", "mp4"),
+      OutputFormat("video/x-flv", "mp4")
     )  // TODO really bad overloading of output format
 
     if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
