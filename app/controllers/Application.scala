@@ -183,7 +183,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
                 }
               }
 
-              Ok(Json.toJson(metadata ++ contentTypeSpecificAttributes ++ summary))
+              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ contentTypeSpecificAttributes ++ summary))
             }
           }
         }
