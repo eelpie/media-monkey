@@ -30,7 +30,7 @@ class ExiftoolService {
         parse(json)
 
       } else {
-        Logger.warn("exiftool process failed")
+        Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
         None
       }
     }
