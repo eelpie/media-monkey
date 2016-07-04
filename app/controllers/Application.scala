@@ -2,7 +2,6 @@ package controllers
 
 import java.io.{File, FileInputStream}
 
-import controllers.Application.OutputFormat
 import futures.Retry
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
@@ -25,6 +24,29 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   val XHeight = "X-Height"
 
   case class OutputFormat(mineType: String, fileExtension: String)
+
+  val recognisedImageTypes = Seq(
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/x-ms-bmp"
+  )
+
+  val recognisedVideoTypes = Seq(
+    "application/mp4",
+    "video/3gpp",
+    "video/m2ts",
+    "video/mp4",
+    "video/mpeg",
+    "video/quicktime",
+    "video/x-flv",
+    "video/x-m4v",
+    "video/x-matroska",
+    "video/x-ms-asf",
+    "video/x-msvideo",
+    "video/theora"
+  );
+
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
   val audioOutputFormat = OutputFormat("audio/wav", "wav")
@@ -311,25 +333,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
   private def inferTypeFromContentType(contentType: String): Option[String] = {
 
-    val recognisedImageTypes = supportedImageOutputFormats ++ Seq(
-      OutputFormat("image/x-ms-bmp", "bmp")
-    )
-    val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(
-      OutputFormat("application/mp4", "mp4"),
-      OutputFormat("video/3gpp", "mp4"),
-      OutputFormat("video/m2ts", "mp4"),
-      OutputFormat("video/mpeg", "mp4"),
-      OutputFormat("video/quicktime", "mp4"),
-      OutputFormat("video/x-flv", "mp4"),
-      OutputFormat("video/x-m4v", "mp4"),
-      OutputFormat("video/x-matroska", "mp4"),
-      OutputFormat("video/x-ms-asf", "mp4"),
-      OutputFormat("video/x-msvideo", "mp4")
-    )  // TODO really bad overloading of output format
-
-    if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
+    if (recognisedImageTypes.contains(contentType)) {
       Some("image")
-    } else if (recognisedVideoTypes.exists(vt => vt.mineType == contentType)) {
+    } else if (recognisedVideoTypes.contains(contentType)) {
       Some("video")
     } else {
       None
