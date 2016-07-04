@@ -2,6 +2,7 @@ package controllers
 
 import java.io.{File, FileInputStream}
 
+import controllers.Application.OutputFormat
 import futures.Retry
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
@@ -315,12 +316,15 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     )
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(
       OutputFormat("application/mp4", "mp4"),
-      OutputFormat("video/x-matroska", "mp4"),
-      OutputFormat("video/mpeg", "mp4"),
       OutputFormat("video/3gpp", "mp4"),
       OutputFormat("video/m2ts", "mp4"),
+      OutputFormat("video/mpeg", "mp4"),
+      OutputFormat("video/quicktime", "mp4"),
+      OutputFormat("video/x-flv", "mp4"),
       OutputFormat("video/x-m4v", "mp4"),
-      OutputFormat("video/x-flv", "mp4")
+      OutputFormat("video/x-matroska", "mp4"),
+      OutputFormat("video/x-ms-asf", "mp4"),
+      OutputFormat("video/x-msvideo", "mp4")
     )  // TODO really bad overloading of output format
 
     if (recognisedImageTypes.exists(it => it.mineType == contentType)) {
