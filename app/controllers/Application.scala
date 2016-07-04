@@ -44,8 +44,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     "video/x-matroska",
     "video/x-ms-asf",
     "video/x-msvideo",
-    "video/theora"
-  );
+    "video/theora",
+    "video/webm"
+  )
 
   val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"))
   val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
