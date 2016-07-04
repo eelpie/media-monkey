@@ -310,7 +310,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
   private def inferTypeFromContentType(contentType: String): Option[String] = {
 
-    val recognisedImageTypes = supportedImageOutputFormats
+    val recognisedImageTypes = supportedImageOutputFormats ++ Seq(
+      OutputFormat("image/x-ms-bmp", "bmp")
+    )
     val recognisedVideoTypes = supportedVideoOutputFormats ++ Seq(
       OutputFormat("application/mp4", "mp4"),
       OutputFormat("video/x-matroska", "mp4"),
