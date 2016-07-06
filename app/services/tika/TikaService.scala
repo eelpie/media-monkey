@@ -19,7 +19,7 @@ trait TikaService {
 
   def meta(f: File): Future[Option[Map[String, String]]] = {
     Future {
-      Logger.info("Posting submitted file to Taki for typing")
+      Logger.info("Posting submitted file to Tika for typing")
       val asyncHttpClient: AsyncHttpClient = WS.client.underlying
 
       val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
