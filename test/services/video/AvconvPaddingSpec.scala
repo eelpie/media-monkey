@@ -5,12 +5,8 @@ import org.specs2.mutable._
 class AvconvPaddingSpec extends Specification with AvconvPadding {
 
   "can generate padding arguments from source and destination dimensions" in {
-      val sourceDimensions = (854, 480)
-      val targetDimensions = (296, 163)
-
-      val paddingParameter: Option[String] = padding(Some(sourceDimensions), Some(targetDimensions), 0)
-
-      paddingParameter must equalTo(Some("pad=854:480:0:0"))
+      padding(Some((854, 480)), Some((296, 163)), 0) must equalTo(None)
+      padding(Some((568, 320)), Some((568, 320)), 90) must equalTo(Some("pad=568:320:0:0"))
   }
 
 }

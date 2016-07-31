@@ -15,14 +15,15 @@ trait AvconvPadding {
         val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
-        val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
+        val d: Double = (sourceAspectRatio - outputAspectRatio).abs
+        val aspectRatiosDiffer: Boolean = d > 0.05
         val isRotated = (rotationToApply == 90 || rotationToApply == 270)
 
         if (aspectRatiosDiffer || isRotated) {
           Logger.info("Applying padding")
 
-          val paddedWidth: BigDecimal = (BigDecimal(sd._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.UP)
-          val paddingParameter = Some("pad=" + Seq(paddedWidth.rounded.toInt, sd._2, 0, 0).mkString(":"))
+          val paddedWidth = if (d < 0.05) sd._1 else (BigDecimal(sd._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
+          val paddingParameter = Some("pad=" + Seq(paddedWidth, sd._2, 0, 0).mkString(":"))
           Logger.info("Generated padding parameter: " + paddingParameter)
           paddingParameter
 
