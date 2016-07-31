@@ -6,7 +6,7 @@ trait AvconvPadding {
 
   val SixteenNine = (BigDecimal(16) / BigDecimal(9)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
 
-  def padding(sourceDimensions: Option[(Int, Int)], outputSize: Option[(Int, Int)], rotationToApply: Int): Option[String] = {
+  def padding(sourceDimensions: Option[(Int, Int)], outputSize: Option[(Int, Int)], sourceAspectRatio: Option[Double], rotationToApply: Int): Option[String] = {
     outputSize.flatMap { os =>
       sourceDimensions.flatMap { sd =>
 
@@ -15,15 +15,16 @@ trait AvconvPadding {
         } else {
           sd
         }
+        // TODO invert user supplied aspect ration on rotate
 
-        val sourceAspectRatio = (BigDecimal(effectiveSourceDimensions._1) / BigDecimal(effectiveSourceDimensions._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+        val effectiveSourceAspectRatio = sourceAspectRatio.getOrElse((BigDecimal(effectiveSourceDimensions._1) / BigDecimal(effectiveSourceDimensions._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble)
         Logger.info("Source dimensions " + effectiveSourceDimensions + " aspect ratio: " + effectiveSourceDimensions)
 
         val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
         val d: Double = (sourceAspectRatio - outputAspectRatio).abs
-        val aspectRatiosDiffer: Boolean = outputAspectRatio > sourceAspectRatio && d > 0.05
+        val aspectRatiosDiffer: Boolean = outputAspectRatio > effectiveSourceAspectRatio && d > 0.05
 
         if (aspectRatiosDiffer) {
           Logger.info("Applying padding")

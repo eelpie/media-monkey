@@ -17,7 +17,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
 
   val mediainfoService = MediainfoService
 
-  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[Option[File]] = {
+  def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
@@ -40,7 +40,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
 
         val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
           sizeParameters(width, height) ++
-          rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, rotationToApply), None) ++
+          rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply), None) ++
           Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
         Logger.info("avconv command: " + avconvCmd)
@@ -61,7 +61,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
     }
   }
 
-  def strip(input: File, outputFormat: String, width: Int, height: Int, rotation: Option[Int]): Future[Option[File]] = {
+  def strip(input: File, outputFormat: String, width: Int, height: Int, sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
@@ -78,7 +78,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
           sizeParameters(Some(width), Some(height)) ++
           Seq("-ss", "00:00:00", "-an") ++
-          rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), rotationToApply), Some("fps=1")) ++
+          rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), sourceAspectRatio, rotationToApply), Some("fps=1")) ++
           Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
         Logger.info("avconv command: " + avconvCmd)
@@ -142,14 +142,14 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
     }
   }
 
-  def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], rotation: Option[Int]): Future[Option[File]] = {
+  def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse(inferRotation(mediainfo))
       val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
-      val possiblePadding = padding(sourceDimensions, outputSize, rotationToApply)
+      val possiblePadding = padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply)
 
       Future {
         val outputFile = File.createTempFile("transcoded", "." + outputFormat)

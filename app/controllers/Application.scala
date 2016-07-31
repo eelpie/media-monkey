@@ -100,10 +100,10 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         })
 
         Seq(
-          orientedImageDimensions.map(id => ("width" -> id._1)),
-          orientedImageDimensions.map(id => ("height" -> id._2)),
-          orientation.map(o => ("orientation" -> o)),
-          rotation.map(r => ("rotation" -> r))
+          orientedImageDimensions.map(id => "width" -> id._1),
+          orientedImageDimensions.map(id => "height" -> id._2),
+          orientation.map(o => "orientation" -> o),
+          rotation.map(r => "rotation" -> r)
         ).flatten
       }
 
@@ -170,8 +170,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
             sourceFile.clean()
 
             val summary: Map[String, String] = Seq(
-              Some(("contentType" -> ct)),
-              tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+              Some("contentType" -> ct),
+              tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
               Some("md5" -> md5Hash)
             ).flatten.toMap
 
@@ -186,9 +186,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
               sourceFile.clean()
 
               val summary: Map[String, String] = Seq(
-                Some(("type" -> t)),
-                Some(("contentType" -> ct)),
-                tika.suggestedFileExtension(ct).map(e => ("fileExtension" -> e)),
+                Some("type" -> t),
+                Some("contentType" -> ct),
+                tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
                 Some("md5" -> md5Hash)
               ).flatten.toMap
 
@@ -244,14 +244,13 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     }
   }
 
-  def videoStrip(w: Option[Int], h: Option[Int], callback: Option[String], rotate: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def videoStrip(w: Option[Int], h: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val width = w.getOrElse(320)
     val height = h.getOrElse(180)
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
-
-      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { ro =>
+      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
         sourceFile.clean()
 
         ro.fold {
@@ -285,7 +284,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   }
 
 
-  def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     val sourceFile = request.body
 
@@ -293,7 +292,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
 
-        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, rotate).flatMap { ro =>
+        videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
           sourceFile.clean()
 
           ro.fold {
@@ -314,7 +313,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           }
         }
 
-        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, rotate).flatMap { ro =>
+        videoService.transcode(sourceFile.file, of.fileExtension, outputSize, aspectRatio, rotate).flatMap { ro =>
           sourceFile.clean()
 
           ro.fold {
@@ -357,7 +356,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String]): Future[Result] = {
 
     def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
-      val dimensionHeaders = Seq(dimensions.map(d => (XWidth -> d._1.toString)), dimensions.map(d => (XHeight -> d._2.toString))).flatten
+      val dimensionHeaders = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
       Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
     }
 
