@@ -29,7 +29,8 @@ trait AvconvPadding {
           Logger.info("Applying padding")
 
           val paddedWidth = if (d < 0.05) effectiveSourceDimensions._1 else (BigDecimal(effectiveSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
-          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + effectiveSourceDimensions._2)
+          val x = BigDecimal(paddedWidth - effectiveSourceDimensions._1) / 2
+          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + effectiveSourceDimensions._2 + ":x=" + x.rounded.toInt)
           Logger.info("Generated padding parameter: " + paddingParameter)
           paddingParameter
 
