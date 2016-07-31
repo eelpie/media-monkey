@@ -9,21 +9,27 @@ trait AvconvPadding {
   def padding(sourceDimensions: Option[(Int, Int)], outputSize: Option[(Int, Int)], rotationToApply: Int): Option[String] = {
     outputSize.flatMap { os =>
       sourceDimensions.flatMap { sd =>
-        val sourceAspectRatio = (BigDecimal(sd._1) / BigDecimal(sd._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
-        Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
+
+        val effectiveSourceDimensions = if (rotationToApply == 90 || rotationToApply == 270) {
+          (sd._2, sd._1)
+        } else {
+          sd
+        }
+
+        val sourceAspectRatio = (BigDecimal(effectiveSourceDimensions._1) / BigDecimal(effectiveSourceDimensions._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
+        Logger.info("Source dimensions " + effectiveSourceDimensions + " aspect ratio: " + effectiveSourceDimensions)
 
         val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
         val d: Double = (sourceAspectRatio - outputAspectRatio).abs
         val aspectRatiosDiffer: Boolean = outputAspectRatio > sourceAspectRatio && d > 0.05
-        val isRotated = (rotationToApply == 90 || rotationToApply == 270)
 
-        if (aspectRatiosDiffer || isRotated) {
+        if (aspectRatiosDiffer) {
           Logger.info("Applying padding")
 
-          val paddedWidth = if (d < 0.05) sd._1 else (BigDecimal(sd._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
-          val paddingParameter = Some("pad=" + Seq(paddedWidth, sd._2, 0, 0).mkString(":"))
+          val paddedWidth = if (d < 0.05) effectiveSourceDimensions._1 else (BigDecimal(effectiveSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
+          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + effectiveSourceDimensions._2)
           Logger.info("Generated padding parameter: " + paddingParameter)
           paddingParameter
 
