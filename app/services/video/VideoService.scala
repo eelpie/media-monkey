@@ -11,14 +11,16 @@ import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
 
-object VideoService extends MediainfoInterpreter {
+object VideoService extends MediainfoInterpreter with AvconvPadding {
 
   val logger: ProcessLogger = ProcessLogger(l => Logger.debug("avconv: " + l))
 
   val mediainfoService = MediainfoService
 
   def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], rotation: Option[Int]): Future[Option[File]] = {
+
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
         val ir = inferRotation(mediainfo)
@@ -180,31 +182,6 @@ object VideoService extends MediainfoInterpreter {
     )
     map.fold(Seq[String]())(s => s)
   }
-
-  private def padding(sourceDimensions: Option[(Int, Int)], outputSize: Option[(Int, Int)], rotationToApply: Int): Option[String] = {
-    outputSize.flatMap { os =>
-      sourceDimensions.flatMap { sd =>
-        val sourceAspectRatio = (BigDecimal(sd._1) / BigDecimal(sd._2)).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
-        Logger.info("Source dimensions " + sd + " aspect ratio: " + sourceAspectRatio)
-
-        val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(2, BigDecimal.RoundingMode.HALF_DOWN).toDouble
-        Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
-
-        val aspectRatiosDiffer: Boolean = sourceAspectRatio != outputAspectRatio
-        val isRotated = (rotationToApply == 90 || rotationToApply == 270)
-
-        if (aspectRatiosDiffer || isRotated) {
-          Logger.info("Applying padding")
-          Some("pad=ih*16/9:ih:(ow-iw)/2:(oh-ih)/2")
-
-        } else {
-          Logger.info("No padding required")
-          None
-        }
-      }
-    }
-  }
-
 
   private def rotationAndPaddingParameters(rotation: Int, possiblePadding: Option[String], additionalVfArguments: Option[String]): Seq[String] = {
 
