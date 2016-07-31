@@ -16,7 +16,7 @@ trait AvconvPadding {
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
         val d: Double = (sourceAspectRatio - outputAspectRatio).abs
-        val aspectRatiosDiffer: Boolean = d > 0.05
+        val aspectRatiosDiffer: Boolean = outputAspectRatio > sourceAspectRatio && d > 0.05
         val isRotated = (rotationToApply == 90 || rotationToApply == 270)
 
         if (aspectRatiosDiffer || isRotated) {
