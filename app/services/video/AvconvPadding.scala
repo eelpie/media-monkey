@@ -23,7 +23,7 @@ trait AvconvPadding {
         val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
-        val d: Double = (sourceAspectRatio - outputAspectRatio).abs
+        val d: Double = (effectiveSourceAspectRatio - outputAspectRatio).abs
         val aspectRatiosDiffer: Boolean = outputAspectRatio > effectiveSourceAspectRatio && d > 0.05
 
         if (aspectRatiosDiffer) {
