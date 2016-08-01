@@ -126,7 +126,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
     Future {
       val outputFormat = "wav"
       val output: File = File.createTempFile("audio", "." + outputFormat)
-      val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath, "-vn", output.getAbsolutePath)
+      val avconvCmd = avconvInput(input, mediainfo) ++ Seq("-vn", output.getAbsolutePath)
       Logger.info("Processing video audio track")
       Logger.info("avconv command: " + avconvCmd)
 
