@@ -2,6 +2,7 @@ package services.video
 
 import java.io.File
 
+import model.Track
 import org.im4java.core.{ConvertCmd, IMOperation}
 import play.api.Logger
 import play.api.Play.current
@@ -38,9 +39,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         )
         val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
 
-        val wmvCodecHint = videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv")) else None).getOrElse(Seq())
-
-        val avconvCmd = Seq("avconv", "-y") ++ wmvCodecHint ++ Seq("-i", input.getAbsolutePath) ++
+        val avconvCmd = avconvInput(input, mediainfo) ++
           sizeParameters(width, height) ++
           rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply), None) ++
           Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
@@ -77,7 +76,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
 
         val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
 
-        val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        val avconvCmd = avconvInput(input, mediainfo) ++
           sizeParameters(Some(width), Some(height)) ++
           Seq("-ss", "00:00:00", "-an") ++
           rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), sourceAspectRatio, rotationToApply), Some("fps=1")) ++
@@ -155,7 +154,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
 
       Future {
         val outputFile = File.createTempFile("transcoded", "." + outputFormat)
-        val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        val avconvCmd = avconvInput(input, mediainfo) ++
           sizeParameters(outputSize.map(os => os._1), outputSize.map(os => os._2)) ++
           rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
           Seq("-b:a", "128k", "-strict", "experimental", outputFile.getAbsolutePath)
@@ -197,6 +196,10 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
     val vfParameters: Seq[String] = Seq(possibleRotation, possiblePadding, additionalVfArguments).flatten
 
     if (vfParameters.nonEmpty) Seq("-vf", vfParameters.mkString(",")) else Seq()
+  }
+
+  private def avconvInput(input: File, mediainfo: Option[Seq[Track]]): Seq[String] = {
+    Seq("avconv", "-y") ++ videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv3")) else None).getOrElse(Seq()) ++ Seq("-i", input.getAbsolutePath)
   }
 
 }
