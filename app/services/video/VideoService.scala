@@ -38,7 +38,9 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         )
         val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
 
-        val avconvCmd = Seq("avconv", "-y", "-i", input.getAbsolutePath) ++
+        val wmvCodecHint = videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv")) else None).getOrElse(Seq())
+
+        val avconvCmd = Seq("avconv", "-y") ++ wmvCodecHint ++ Seq("-i", input.getAbsolutePath) ++
           sizeParameters(width, height) ++
           rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply), None) ++
           Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)

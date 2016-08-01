@@ -9,6 +9,14 @@ trait MediainfoInterpreter {
   val Width: String = "Width"
   val Height: String = "Height"
 
+  def videoCodec(mediainfoTracks: Option[Seq[Track]]): Option[String] = {
+    mediainfoTracks.flatMap { mi =>
+      mi.find(t => t.trackType == Video).flatMap { vt =>
+        vt.fields.get("Codec_ID")
+      }
+    }
+  }
+
   def videoDimensions(mediainfoTracks: Option[Seq[Track]]): Option[(Int, Int)] = {
 
     def parsePixels(i: String): Int = {
