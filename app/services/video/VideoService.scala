@@ -125,8 +125,9 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
 
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
-    mediainfoService.mediainfo(input).flatMap { mediainfo =>
-      val output: File = File.createTempFile("audio", "." + "wav")
+    mediainfoService.mediainfo(input).map { mediainfo =>
+      val output = File.createTempFile("audio", "." + "wav")
+
       val avconvCmd = avconvInput(input, mediainfo) ++ Seq("-vn", output.getAbsolutePath)
       Logger.info("Processing video audio track")
       Logger.info("avconv command: " + avconvCmd)
@@ -140,6 +141,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         output.delete
         None
       }
+
     }
   }
 
