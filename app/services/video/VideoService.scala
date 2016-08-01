@@ -122,16 +122,16 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
   }
 
   def audio(input: File): Future[Option[File]] = {
+
     implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
-    Future {
-      val outputFormat = "wav"
-      val output: File = File.createTempFile("audio", "." + outputFormat)
+
+    mediainfoService.mediainfo(input).flatMap { mediainfo =>
+      val output: File = File.createTempFile("audio", "." + "wav")
       val avconvCmd = avconvInput(input, mediainfo) ++ Seq("-vn", output.getAbsolutePath)
       Logger.info("Processing video audio track")
       Logger.info("avconv command: " + avconvCmd)
 
-      val process: Process = avconvCmd.run(logger)        // Blocks until the process completes
-      if (process.exitValue() == 0) {
+      if (avconvCmd.run(logger).exitValue() == 0) {
         Logger.info("Transcoded video output to: " + output.getAbsolutePath)
         Some(output)
 
