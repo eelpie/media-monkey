@@ -67,7 +67,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
         val ir = inferRotation(mediainfo)
-        Logger.info("Applying rotation infered from mediainfo: " + ir)
+        Logger.info("Applying rotation inferred from mediainfo: " + ir)
         ir
       }
 
@@ -89,7 +89,6 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         if (exitValue == 0) {
           Logger.info("Strip files output to: " + output.getAbsolutePath)
 
-          val imageOutput: File = File.createTempFile("image", "." + outputFormat)
           try {
             def appendImagesOperation(files: String, outputPath: String): IMOperation = {
               val op: IMOperation = new IMOperation()
@@ -100,16 +99,15 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
             }
 
             val cmd: ConvertCmd = new ConvertCmd()
-            cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath()))
-            Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath())
+            cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath))
+            Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath)
             Some(output)
 
           } catch {
-            case e: Exception => {
+            case e: Exception =>
               Logger.error("Exception while executing IM operation", e)
               output.delete
               None
-            }
           }
 
         } else {
