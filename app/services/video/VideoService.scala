@@ -54,7 +54,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
           Some(output)
 
         } else {
-          Logger.warn("avconv process failed")
+          Logger.warn("avconv process failed: " + avconvCmd)
           output.delete
           None
         }
@@ -135,7 +135,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
         Some(output)
 
       } else {
-        Logger.warn("avconv process failed")
+        Logger.warn("avconv process failed: " + avconvCmd)
         output.delete
         None
       }
@@ -169,7 +169,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
           Some(outputFile)
 
         } else {
-          Logger.warn("avconv process failed; deleting output file")
+          Logger.warn("avconv process failed: " + avconvCmd)
           outputFile.delete
           None
         }
