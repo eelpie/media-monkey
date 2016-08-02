@@ -10,15 +10,23 @@ trait AvconvPadding {
     outputSize.flatMap { os =>
       sourceDimensions.flatMap { sd =>
 
-        val effectiveSourceDimensions = if (rotationToApply == 90 || rotationToApply == 270) {
+        val rotatedSourceDimensions = if (rotationToApply == 90 || rotationToApply == 270) {
           (sd._2, sd._1)
         } else {
           sd
         }
+
+        val rotatedSourceAspectRatio = sourceAspectRatio.map { sar =>
+          if (rotationToApply == 90 || rotationToApply == 270) {
+            1 / sar
+          } else {
+            sar
+          }
+        }
         // TODO invert user supplied aspect ration on rotate
 
-        val effectiveSourceAspectRatio = sourceAspectRatio.getOrElse((BigDecimal(effectiveSourceDimensions._1) / BigDecimal(effectiveSourceDimensions._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble)
-        Logger.info("Source dimensions " + effectiveSourceDimensions + " aspect ratio: " + effectiveSourceDimensions)
+        val effectiveSourceAspectRatio = rotatedSourceAspectRatio.getOrElse((BigDecimal(rotatedSourceDimensions._1) / BigDecimal(rotatedSourceDimensions._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble)
+        Logger.info("Source dimensions " + rotatedSourceDimensions + " aspect ratio: " + effectiveSourceAspectRatio)
 
         val outputAspectRatio = (BigDecimal(os._1) / BigDecimal(os._2)).setScale(10, BigDecimal.RoundingMode.HALF_DOWN).toDouble
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
@@ -29,9 +37,9 @@ trait AvconvPadding {
         if (aspectRatiosDiffer) {
           Logger.info("Applying padding")
 
-          val paddedWidth = if (d < 0.05) effectiveSourceDimensions._1 else (BigDecimal(effectiveSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
-          val x = BigDecimal(paddedWidth - effectiveSourceDimensions._1) / 2
-          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + effectiveSourceDimensions._2 + ":x=" + x.rounded.toInt)
+          val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
+          val x = BigDecimal(paddedWidth - rotatedSourceDimensions._1) / 2
+          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + rotatedSourceDimensions._2 + ":x=" + x.rounded.toInt)
           Logger.info("Generated padding parameter: " + paddingParameter)
           paddingParameter
 
