@@ -22,7 +22,7 @@ class ImageService {
 
   def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
 
-    def imResizeOperation(width: Option[Int], height: Optionp[Int], rotate: Double, fill: Boolean): IMOperation = {
+    def imResizeOperation(width: Option[Int], height: Option[Int], rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {
         val op: IMOperation = new IMOperation()
         op.addImage()
