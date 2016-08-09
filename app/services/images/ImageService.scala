@@ -20,7 +20,7 @@ class ImageService {
     }
   }
 
-  def resizeImage(input: File, width: Int, height: Int, rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
+  def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
 
     def imResizeOperation(width: Int, height: Int, rotate: Double, fill: Boolean): IMOperation = {
       if (fill) {
@@ -28,9 +28,14 @@ class ImageService {
         op.addImage()
         op.autoOrient()
         op.rotate(rotate)
-        op.resize(width, height, "^")
-        op.gravity("Center")
-        op.extent(width, height)
+
+        width.flatMap { w =>
+          height { h =>
+            op.resize(w, h, "^")
+            op.gravity("Center")
+            op.extent(width, height)
+          }
+        }
         op.strip()
         op.addImage()
         op
@@ -40,7 +45,13 @@ class ImageService {
         op.addImage()
         op.autoOrient()
         op.rotate(rotate)
-        op.resize(width, height)
+
+        width.flatMap { w =>
+          height.map { h =>
+            op.resize(w, h)
+          }
+        }
+
         op.strip()
         op.addImage()
         op

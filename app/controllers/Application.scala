@@ -216,8 +216,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   }
 
   def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
-    val width = w.getOrElse(800)
-    val height = h.getOrElse(600)
+    val width = w
+    val height = h
     val rotationToApply = rotate.getOrElse(0)
 
     val fill = f.getOrElse(false)
