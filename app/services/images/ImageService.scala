@@ -30,10 +30,10 @@ class ImageService {
         op.rotate(rotate)
 
         width.flatMap { w =>
-          height { h =>
+          height.map { h =>
             op.resize(w, h, "^")
             op.gravity("Center")
-            op.extent(width, height)
+            op.extent(w, h)
           }
         }
         op.strip()
