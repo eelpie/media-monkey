@@ -383,7 +383,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           val headers = headersFor(of, r._2): _*
           Logger.info("Calling back to " + c + " with headers " + headers + " file size: " + r._1.length)
           val of: OutputFormat = r._3
-          WS.url(c).withHeaders(tuples).
+          WS.url(c).withHeaders(headers).
             post(r._1).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
