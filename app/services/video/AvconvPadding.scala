@@ -35,13 +35,23 @@ trait AvconvPadding {
         val aspectRatiosDiffer: Boolean = outputAspectRatio > effectiveSourceAspectRatio && d > 0.05
 
         if (aspectRatiosDiffer) {
-          Logger.info("Applying padding")
 
-          val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
-          val x = BigDecimal(paddedWidth - rotatedSourceDimensions._1) / 2
-          val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + rotatedSourceDimensions._2 + ":x=" + x.rounded.toInt)
-          Logger.info("Generated padding parameter: " + paddingParameter)
-          paddingParameter
+          if (effectiveSourceAspectRatio < outputAspectRatio) {
+            Logger.info("Applying padding")
+            val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
+            val x = BigDecimal(paddedWidth - rotatedSourceDimensions._1) / 2
+            val paddingParameter = Some("pad=width=" + paddedWidth + ":height=" + rotatedSourceDimensions._2 + ":x=" + x.rounded.toInt)
+            Logger.info("Generated padding parameter: " + paddingParameter)
+            paddingParameter
+
+          } else {
+            Logger.info("Applying crop")
+            val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
+            val x = BigDecimal(paddedWidth - rotatedSourceDimensions._1) / 2
+            val croppingParameter = Some("crop=width=" + paddedWidth + ":height=" + rotatedSourceDimensions._2 + ":x=" + x.rounded.toInt)
+            Logger.info("Generated crop parameter: " + croppingParameter)
+            croppingParameter
+          }
 
         } else {
           Logger.info("No padding required")
