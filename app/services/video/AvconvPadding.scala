@@ -48,7 +48,7 @@ trait AvconvPadding {
             Logger.info("Applying crop")
             //val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
             //val x = BigDecimal(paddedWidth - os._1) / 2
-            val croppingParameter = Some("crop=width=" + os._1 + ":height=" + os._2 + ":x=0")
+            val croppingParameter = Some("crop=" + os._1 + ":" + os._2)
             Logger.info("Generated crop parameter: " + croppingParameter)
             croppingParameter
           }
