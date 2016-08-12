@@ -380,10 +380,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           Logger.warn("Failed to process file; not calling back")
 
         } { r =>
-          val headers = headersFor(of, r._2): _*
-          Logger.info("Calling back to " + c + " with headers " + headers + " file size: " + r._1.length)
+          Logger.info("Calling back to " + c)
           val of: OutputFormat = r._3
-          WS.url(c).withHeaders(headers).
+          WS.url(c).withHeaders(headersFor(of, r._2): _*).
             post(r._1).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
