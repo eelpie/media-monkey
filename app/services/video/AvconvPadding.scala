@@ -32,7 +32,7 @@ trait AvconvPadding {
         Logger.info("Ouptut dimensions " + os + " aspect ratio: " + outputAspectRatio)
 
         val d: Double = (effectiveSourceAspectRatio - outputAspectRatio).abs
-        val aspectRatiosDiffer: Boolean = outputAspectRatio > effectiveSourceAspectRatio && d > 0.05
+        val aspectRatiosDiffer: Boolean = d > 0.05
 
         if (aspectRatiosDiffer) {
 
@@ -47,8 +47,8 @@ trait AvconvPadding {
           } else {
             Logger.info("Applying crop")
             val paddedWidth = if (d < 0.05) rotatedSourceDimensions._1 else (BigDecimal(rotatedSourceDimensions._2) * SixteenNine).setScale(0, BigDecimal.RoundingMode.HALF_UP).rounded.toInt
-            val x = BigDecimal(paddedWidth - rotatedSourceDimensions._1) / 2
-            val croppingParameter = Some("crop=width=" + paddedWidth + ":height=" + rotatedSourceDimensions._2 + ":x=" + x.rounded.toInt)
+            val x = BigDecimal(paddedWidth - os._1) / 2
+            val croppingParameter = Some("crop=width=" + os._1 + ":height=" + os._2 + ":x=" + x.rounded.toInt)
             Logger.info("Generated crop parameter: " + croppingParameter)
             croppingParameter
           }
