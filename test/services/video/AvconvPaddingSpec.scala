@@ -10,8 +10,7 @@ class AvconvPaddingSpec extends Specification with AvconvPadding {
   }
 
   "can crop to reduce aspect ratio" in {
-    padding(Some((568, 320)), Some((320, 320)), None, 0) must equalTo(Some("crop=320:320"))
-    padding(Some((568, 320)), Some((120, 100)), None, 0) must equalTo(Some("crop=120:100"))
+    padding(Some((1920, 1080)), Some((320, 320)), None, 0) must equalTo(Some("crop=1080:1080"))
   }
 
 }
