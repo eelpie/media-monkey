@@ -30,7 +30,8 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     "image/jpeg",
     "image/png",
     "image/gif",
-    "image/x-ms-bmp"
+    "image/x-ms-bmp",
+    "image/tiff"
   )
 
   val recognisedVideoTypes = Seq(
