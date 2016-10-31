@@ -20,6 +20,42 @@ class ImageService {
     }
   }
 
+  def cropImage(input: File, width: Int, height: Int, x: Int, y: Int, outputFormat: String): Future[Option[File]] = {
+
+    def imCropOperation(width: Int, height: Int, x: Int, y: Int): IMOperation = {
+        val op: IMOperation = new IMOperation()
+        op.addImage()
+        op.crop(width, height, x, y)
+        op.strip()
+        op.addImage()
+        op
+    }
+
+    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+
+    Future {
+      val outputFile = File.createTempFile("image", "." + outputFormat)
+      Logger.debug("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile)
+      try {
+        val start = DateTime.now
+        val cmd: ConvertCmd = new ConvertCmd()
+        cmd.run(imCropOperation(width, height, x, y), input.getAbsolutePath, outputFile.getAbsolutePath())
+
+        val duration = DateTime.now.getMillis - start.getMillis
+        Logger.info("Completed ImageMagik crop operation " + Seq(width, height, x, y) + " output to: " + outputFile.getAbsolutePath() + " in " + duration + "ms")
+        Some(outputFile)
+
+      } catch {
+        case e: Exception => {
+          Logger.error("Exception while executing IM operation", e)
+          outputFile.delete()
+          None
+        }
+      }
+    }
+
+  }
+
   def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
 
     def imResizeOperation(width: Option[Int], height: Option[Int], rotate: Double, fill: Boolean): IMOperation = {
@@ -69,7 +105,7 @@ class ImageService {
         cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, outputFile.getAbsolutePath())
 
         val duration = DateTime.now.getMillis - start.getMillis
-        Logger.info("Completed ImageMagik operation " + Seq(width, height, rotate, fill) + " output to: " + outputFile.getAbsolutePath() + " in " + duration + "ms")
+        Logger.info("Completed ImageMagik resize operation " + Seq(width, height, rotate, fill) + " output to: " + outputFile.getAbsolutePath() + " in " + duration + "ms")
         Some(outputFile)
 
       } catch {

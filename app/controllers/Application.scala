@@ -217,6 +217,30 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     }
   }
 
+  def crop(width: Int, height: Int, x: Int, y: Int) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+
+    val sourceFile = request.body
+
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+      // TODO no error handling
+
+      val eventualResult = imageService.cropImage(sourceFile.file, width, height, x, y, of.fileExtension).flatMap { ro =>
+        sourceFile.clean()
+
+        ro.fold {
+          Future.successful(eventualNone)
+
+        } { r =>
+          imageService.info(r).map { dimensions =>
+            Some(r, Some(dimensions), of)
+          }
+        }
+      }
+
+      handleResult(eventualResult, None)
+    }
+  }
+
   def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val width = w
     val height = h
