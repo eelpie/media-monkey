@@ -149,7 +149,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
     eventualTikaMetadata.flatMap { tmdo =>
 
-      val metadata = tmdo.fold(Map[String, String]())(tmd => tmd)
+      val metadata = tmdo.getOrElse(Map[String, String]())
 
       val eventualContentType: Future[Option[String]] = metadata.get(CONTENT_TYPE).fold {
         exiftool.contentType(sourceFile.file)
