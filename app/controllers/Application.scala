@@ -118,9 +118,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           val rotation = inferRotation(mit)
 
           val trackFields: Option[Seq[(String, String)]] = mit.map { ts =>
-            ts.filter(t => t.trackType == "General" || t.trackType == "Video").map { t => // TODO work out a good format to preserver all of this information
+            ts.filter(t => t.trackType == "General" || t.trackType == "Video").flatMap { t => // TODO work out a good format to preserver all of this information
               t.fields.toSeq
-            }.flatten
+            }
           }
 
           val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
