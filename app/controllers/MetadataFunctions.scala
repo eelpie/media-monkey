@@ -1,5 +1,11 @@
 package controllers
 
+import java.io.File
+
+import controllers.Application._
+
+import scala.concurrent.Future
+
 trait MetadataFunctions {
 
   def parseExifRotationString(i: String): Option[Int] = {
@@ -46,6 +52,29 @@ trait MetadataFunctions {
       orientation.map(o => "orientation" -> o),
       rotation.map(r => "rotation" -> r)
     ).flatten
+  }
+
+  def inferVideoSpecificAttributes(file: File): Future[Seq[(String, Any)]] = {
+
+    def parseRotation(r: String): Int = {
+      r.replaceAll("[^\\d]", "").toInt
+    }
+
+    mediainfoService.mediainfo(file).map { mit =>
+      val videoTrackDimensions = videoDimensions(mit)
+      val rotation = inferRotation(mit)
+
+      val trackFields: Option[Seq[(String, String)]] = mit.map { ts =>
+        ts.filter(t => t.trackType == "General" || t.trackType == "Video").flatMap { t => // TODO work out a good format to preserver all of this information
+          t.fields.toSeq
+        }
+      }
+
+      val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
+      val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
+
+      combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
+    }
   }
 
 }

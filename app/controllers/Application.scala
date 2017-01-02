@@ -66,29 +66,6 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
     def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Map[String, Any]] = {
 
-      def inferVideoSpecificAttributes(file: File): Future[Seq[(String, Any)]] = {
-
-        def parseRotation(r: String): Int = {
-          r.replaceAll("[^\\d]", "").toInt
-        }
-
-        mediainfoService.mediainfo(file).map { mit =>
-          val videoTrackDimensions = videoDimensions(mit)
-          val rotation = inferRotation(mit)
-
-          val trackFields: Option[Seq[(String, String)]] = mit.map { ts =>
-            ts.filter(t => t.trackType == "General" || t.trackType == "Video").flatMap { t => // TODO work out a good format to preserver all of this information
-              t.fields.toSeq
-            }
-          }
-
-          val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
-          val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
-
-          combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
-        }
-      }
-
       val eventualContentTypeSpecificAttributes = `type` match {
         case "image" =>
           Future.successful(inferImageSpecificAttributes(metadata))
