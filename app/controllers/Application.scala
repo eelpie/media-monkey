@@ -26,7 +26,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
   case class OutputFormat(mineType: String, fileExtension: String)
 
-  val recognisedImageTypes = Seq(
+  val RecognisedImageTypes = Seq(
     "image/jpeg",
     "image/png",
     "image/gif",
@@ -34,7 +34,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     "image/tiff"
   )
 
-  val recognisedVideoTypes = Seq(
+  val RecognisedVideoTypes = Seq(
     "application/mp4",
     "video/3gpp",
     "video/m2ts",
@@ -50,9 +50,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     "video/webm"
   )
 
-  val supportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"), OutputFormat("image/x-icon", "ico"))
-  val supportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
-  val audioOutputFormat = OutputFormat("audio/wav", "wav")
+  val SupportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"), OutputFormat("image/x-icon", "ico"))
+  val SupportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
+  val AudioOutputFormat = OutputFormat("audio/wav", "wav")
 
   val eventualNone: Option[(File, Option[(Int, Int)], OutputFormat)] = None
 
@@ -250,7 +250,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
     val sourceFile = request.body
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).flatMap { ro =>
@@ -274,7 +274,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     val width = w.getOrElse(320)
     val height = h.getOrElse(180)
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
       val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
         sourceFile.clean()
@@ -303,7 +303,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
       }{ r =>
         val noDimensions: Option[(Int, Int)] = None
-        Some(r, noDimensions, audioOutputFormat)
+        Some(r, noDimensions, AudioOutputFormat)
       }
     }
     handleResult(eventualResult, callback)
@@ -314,7 +314,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
     val sourceFile = request.body
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
 
@@ -359,9 +359,9 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
   private def inferTypeFromContentType(contentType: String): Option[String] = {
 
-    if (recognisedImageTypes.contains(contentType)) {
+    if (RecognisedImageTypes.contains(contentType)) {
       Some("image")
-    } else if (recognisedVideoTypes.contains(contentType)) {
+    } else if (RecognisedVideoTypes.contains(contentType)) {
       Some("video")
     } else {
       None
