@@ -54,8 +54,6 @@ object Application extends Controller with MediainfoInterpreter with Retry {
   val SupportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
   val AudioOutputFormat = OutputFormat("audio/wav", "wav")
 
-  val eventualNone: Option[(File, Option[(Int, Int)], OutputFormat)] = None
-
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
   val mediainfoService: MediainfoService = MediainfoService
@@ -256,14 +254,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).flatMap { ro =>
         sourceFile.clean()
 
-        ro.fold {
-          Future.successful(eventualNone)
-
-        } { r =>
+        ro.map { r =>
           imageService.info(r).map { dimensions =>
             Some(r, Some(dimensions), of)
           }
-        }
+        }.getOrElse(Future.successful(None))
       }
 
       handleResult(eventualResult, callback)
@@ -279,14 +274,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
       val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
         sourceFile.clean()
 
-        ro.fold {
-          Future.successful(eventualNone)
-
-        } { r =>
+        ro.map { r =>
           imageService.info(r).map { dimensions =>
             Some(r, Some(dimensions), of)
           }
-        }
+        }.getOrElse(Future.successful(None))
       }
 
       handleResult(eventualResult, callback)
@@ -298,13 +290,10 @@ object Application extends Controller with MediainfoInterpreter with Retry {
     val eventualResult = videoService.audio(sourceFile.file).map { ro =>
       sourceFile.clean()
 
-      ro.fold {
-        eventualNone
-
-      }{ r =>
+      ro.map { r =>
         val noDimensions: Option[(Int, Int)] = None
         Some(r, noDimensions, AudioOutputFormat)
-      }
+      }.getOrElse(None)
     }
     handleResult(eventualResult, callback)
   }
@@ -321,14 +310,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
           sourceFile.clean()
 
-          ro.fold {
-            Future.successful(eventualNone)
-
-          } { r =>
+          ro.map { r =>
             imageService.info(r).map { dimensions =>
               Some(r, Some(dimensions), of)
             }
-          }
+          }.getOrElse(Future.successful(None))
         }
 
       } else {
@@ -342,14 +328,11 @@ object Application extends Controller with MediainfoInterpreter with Retry {
         videoService.transcode(sourceFile.file, of.fileExtension, outputSize, aspectRatio, rotate).flatMap { ro =>
           sourceFile.clean()
 
-          ro.fold {
-            Future.successful(eventualNone)
-
-          } { r =>
+          ro.map{ r =>
             mediainfoService.mediainfo(r).map { mi =>
               Some(r, videoDimensions(mi), of)
             }
-          }
+          }.getOrElse(Future.successful(None))
         }
       }
 
