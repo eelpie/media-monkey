@@ -167,20 +167,17 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
     val sourceFile = request.body
 
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), supportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
+    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
       val eventualResult = imageService.cropImage(sourceFile.file, width, height, x, y, of.fileExtension).flatMap { ro =>
         sourceFile.clean()
 
-        ro.fold {
-          Future.successful(eventualNone)
-
-        } { r =>
+        ro.map{ r =>
           imageService.info(r).map { dimensions =>
             Some(r, Some(dimensions), of)
           }
-        }
+        }.getOrElse(Future.successful(None))
       }
 
       handleResult(eventualResult, None)
