@@ -105,22 +105,16 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
     val sourceFile = request.body
 
-    val eventualTikaMetadata: Future[Option[Map[String, String]]] = retry(3)(tika.meta(sourceFile.file))
-
-    eventualTikaMetadata.flatMap { tmdo =>
+    retry(3)(tika.meta(sourceFile.file)).flatMap { tmdo =>
 
       val metadata = tmdo.getOrElse(Map[String, String]())
 
-      val eventualContentType: Future[Option[String]] = metadata.get(CONTENT_TYPE).fold {
+      val eventualContentType = metadata.get(CONTENT_TYPE).fold {
         exiftool.contentType(sourceFile.file)
       }(ct => Future.successful(Some(ct)))
 
       eventualContentType.flatMap { contentType =>
         contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { ct =>
-
-          val `type`: Option[String] = inferTypeFromContentType(ct)
-
-          Logger.info("Infered type from content type: " + `type` + " / " + ct)
 
           def summarise(`type`: Option[String], contentType: String, file: File): Map[String, String] = {
             val stream: FileInputStream = new FileInputStream(sourceFile.file)
@@ -135,7 +129,10 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
             ).flatten.toMap
           }
 
-          val summary = summarise(None, ct, sourceFile.file)
+          val `type`: Option[String] = inferTypeFromContentType(ct)
+          Logger.info("Infered type from content type: " + `type` + " / " + ct)
+
+          val summary = summarise(`type`, ct, sourceFile.file)
           sourceFile.clean()
 
           `type`.fold {
