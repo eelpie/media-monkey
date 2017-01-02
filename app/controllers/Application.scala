@@ -113,25 +113,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           } { t =>
             inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
-
-              implicit val writes = new Writes[Map[String, Any]] {
-                override def writes(o: Map[String, Any]): JsValue = {
-                  val map = o.map(i => {
-                    val value: Any = i._2
-                    val json: JsValue = value match {
-                      case i: Int => JsNumber(i)
-                      case _ => Json.toJson(value.toString)
-                    }
-                    (i._1, json)
-                  })
-                  JsObject(map.toList)
-                }
-              }
-
               sourceFile.clean()
               implicit val fsaw = Json.writes[FormatSpecificAttributes]
-              val json = Json.toJson(contentTypeSpecificAttributes).as[JsObject]
-              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ summary).as[JsObject] ++ json)
+              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ summary).as[JsObject] ++ Json.toJson(contentTypeSpecificAttributes).as[JsObject])
             }
           }
         }
