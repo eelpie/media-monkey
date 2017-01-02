@@ -133,9 +133,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
           Logger.info("Infered type from content type: " + `type` + " / " + ct)
 
           val summary = summarise(`type`, ct, sourceFile.file)
-          sourceFile.clean()
 
           `type`.fold {
+            sourceFile.clean()
             Future.successful(UnsupportedMediaType(Json.toJson(metadata ++ summary)))
 
           } { t =>
@@ -155,6 +155,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
                 }
               }
 
+              sourceFile.clean()
               Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ contentTypeSpecificAttributes ++ summary))
             }
           }
