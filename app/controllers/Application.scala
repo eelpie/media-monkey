@@ -3,6 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import futures.Retry
+import model.FormatSpecificAttributes
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -64,19 +65,14 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
-    def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Map[String, Any]] = {
-
-      val eventualContentTypeSpecificAttributes = `type` match {
+    def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Option[FormatSpecificAttributes]] = {
+      `type` match {
         case "image" =>
-          Future.successful(inferImageSpecificAttributes(metadata))
+          Future.successful(Some(inferImageSpecificAttributes(metadata)))
         case "video" =>
-          inferVideoSpecificAttributes(file)
+          inferVideoSpecificAttributes(file).map(i => Some(i))
         case _ =>
-          Future.successful(Seq())
-      }
-
-      eventualContentTypeSpecificAttributes.map { i =>
-        i.toMap
+          Future.successful(None)
       }
     }
 
@@ -133,7 +129,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
               }
 
               sourceFile.clean()
-              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ contentTypeSpecificAttributes ++ summary))
+              implicit val fsaw = Json.writes[FormatSpecificAttributes]
+              val json = Json.toJson(contentTypeSpecificAttributes).as[JsObject]
+              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ summary).as[JsObject] ++ json)
             }
           }
         }

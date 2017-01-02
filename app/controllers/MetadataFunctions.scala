@@ -3,8 +3,10 @@ package controllers
 import java.io.File
 
 import controllers.Application._
+import model.FormatSpecificAttributes
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait MetadataFunctions {
 
@@ -40,21 +42,21 @@ trait MetadataFunctions {
     if (imageDimensions._1 > imageDimensions._2) "landscape" else "portrait"
   }
 
-  def inferImageSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = { // TODO sensible return type
+  def inferImageSpecificAttributes(metadata: Map[String, String]): FormatSpecificAttributes = {
+
     val imageDimensions = parseImageDimensions(metadata)
     val rotation = metadata.get("Orientation").flatMap(i => parseExifRotationString(i))
     val orientedImageDimensions = imageDimensions.map (d => correctImageDimensionsForRotation(d, rotation))
     val orientation = orientedImageDimensions.map(d => determineOrientation(d))
 
-    Seq(
-      orientedImageDimensions.map(id => "width" -> id._1),
-      orientedImageDimensions.map(id => "height" -> id._2),
-      orientation.map(o => "orientation" -> o),
-      rotation.map(r => "rotation" -> r)
-    ).flatten
+    FormatSpecificAttributes(
+      orientedImageDimensions.map(d => d._1),
+      orientedImageDimensions.map(d => d._2),
+      rotation,
+      orientation)
   }
 
-  def inferVideoSpecificAttributes(file: File): Future[Seq[(String, Any)]] = {
+  def inferVideoSpecificAttributes(file: File): Future[FormatSpecificAttributes] = {
 
     def parseRotation(r: String): Int = {
       r.replaceAll("[^\\d]", "").toInt
@@ -73,7 +75,13 @@ trait MetadataFunctions {
       val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
       val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
 
-      combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
+      // combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
+
+      FormatSpecificAttributes(
+        videoTrackDimensions.map(d => d._1),
+        videoTrackDimensions.map(d => d._2),
+        Some(rotation),
+        None)
     }
   }
 
