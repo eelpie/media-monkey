@@ -201,8 +201,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
                       case _ => Json.toJson(value.toString)
                     }
                     (i._1, json)
-                  }).toList
-
+                  })
                   JsObject(map.toList)
                 }
               }
