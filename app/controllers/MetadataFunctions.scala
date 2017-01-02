@@ -21,11 +21,13 @@ trait MetadataFunctions {
 
   def correctImageDimensionsForRotation(dimensions: (Int, Int), rotation: Option[Int]): (Int, Int) = {
     val OrientationsRequiringWidthHeightFlip = Seq(90, 270)
-    if (OrientationsRequiringWidthHeightFlip.contains(rotation)) {
-      (dimensions._2, dimensions._1)
-    } else {
-      dimensions
-    }
+    rotation.map { r =>
+      if (OrientationsRequiringWidthHeightFlip.contains(r)) {
+        (dimensions._2, dimensions._1)
+      } else {
+        dimensions
+      }
+    }.getOrElse(dimensions)
   }
 
   def determineOrientation(imageDimensions: (Int, Int)): String = {
