@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object Application extends Controller with MediainfoInterpreter with Retry {
+object Application extends Controller with MediainfoInterpreter with Retry with MetadataFunctions {
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -73,16 +73,7 @@ object Application extends Controller with MediainfoInterpreter with Retry {
           })
         })
 
-        val exifOrientation: Option[String] = metadata.get("Orientation")
-
-        val rotation: Option[Int] = exifOrientation.flatMap { o =>
-          val exifRotations = Map[String, Int](
-            "Right side, top (Rotate 90 CW)" -> 90,
-            "Bottom, right side (Rotate 180)" -> 180,
-            "Left side, bottom (Rotate 270 CW)" -> 270
-          )
-          exifRotations.get(o)
-        }
+        val rotation: Option[Int] = metadata.get("Orientation").flatMap(i => parseExifRotationString(i))
 
         val orientedImageDimensions: Option[(Int, Int)] = rotation.fold(imageDimensions)(r => {
           imageDimensions.map(im => {
