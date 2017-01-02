@@ -66,39 +66,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
     def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Map[String, Any]] = {
 
-      def inferImageSpecificAttributes(metadata: Map[String, String]): Seq[(String, Any)] = {
-        val imageDimensions: Option[(Int, Int)] = metadata.get("Image Width").flatMap(iw => {
-          metadata.get("Image Height").map(ih => {
-            (iw.replace(" pixels", "").toInt, ih.replace(" pixels", "").toInt)
-          })
-        })
-
-        val rotation: Option[Int] = metadata.get("Orientation").flatMap(i => parseExifRotationString(i))
-
-        val orientedImageDimensions: Option[(Int, Int)] = rotation.fold(imageDimensions)(r => {
-          imageDimensions.map(im => {
-            val orientationsRequiringWidthHeightFlip = Seq(90, 270)
-            if (orientationsRequiringWidthHeightFlip.contains(r)) {
-              (im._2, im._1)
-            } else {
-              im
-            }
-          })
-        })
-
-        val orientation = orientedImageDimensions.map(im => {
-          if (im._1 > im._2) "landscape" else "portrait"
-        })
-
-        Seq(
-          orientedImageDimensions.map(id => "width" -> id._1),
-          orientedImageDimensions.map(id => "height" -> id._2),
-          orientation.map(o => "orientation" -> o),
-          rotation.map(r => "rotation" -> r)
-        ).flatten
-      }
-
-      def inferVideoSpecificAttributes(file: File, metadata: Map[String, String]): Future[Seq[(String, Any)]] = {
+      def inferVideoSpecificAttributes(file: File): Future[Seq[(String, Any)]] = {
 
         def parseRotation(r: String): Int = {
           r.replaceAll("[^\\d]", "").toInt
@@ -124,7 +92,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
       val eventualContentTypeSpecificAttributes: Future[Seq[(String, Any)]] = if (`type` == "image") {
         Future.successful(inferImageSpecificAttributes(metadata))
       } else if (`type` == "video") {
-        inferVideoSpecificAttributes(file, metadata)
+        inferVideoSpecificAttributes(file)
       } else {
         Future.successful(Seq())
       }
