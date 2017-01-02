@@ -162,35 +162,28 @@ object Application extends Controller with MediainfoInterpreter with Retry {
 
           Logger.info("Infered type from content type: " + `type` + " / " + ct)
 
-          `type`.fold{
-
+          def summarise(`type`: Option[String], contentType: String, file: File): Map[String, String] = {
             val stream: FileInputStream = new FileInputStream(sourceFile.file)
             val md5Hash = DigestUtils.md5Hex(stream)
             stream.close()
-            sourceFile.clean()
 
             val summary: Map[String, String] = Seq(
+              `type`.map(t => "type" -> t),
               Some("contentType" -> ct),
               tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
               Some("md5" -> md5Hash)
             ).flatten.toMap
+            summary
+          }
 
+          val summary = summarise(None, ct, sourceFile.file)
+          sourceFile.clean()
+
+          `type`.fold {
             Future.successful(UnsupportedMediaType(Json.toJson(metadata ++ summary)))
 
           } { t =>
-
             inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
-              val stream: FileInputStream = new FileInputStream(sourceFile.file)
-              val md5Hash = DigestUtils.md5Hex(stream)
-              stream.close()
-              sourceFile.clean()
-
-              val summary: Map[String, String] = Seq(
-                Some("type" -> t),
-                Some("contentType" -> ct),
-                tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
-                Some("md5" -> md5Hash)
-              ).flatten.toMap
 
               implicit val writes = new Writes[Map[String, Any]] {
                 override def writes(o: Map[String, Any]): JsValue = {
