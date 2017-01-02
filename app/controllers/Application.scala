@@ -167,13 +167,12 @@ object Application extends Controller with MediainfoInterpreter with Retry {
             val md5Hash = DigestUtils.md5Hex(stream)
             stream.close()
 
-            val summary: Map[String, String] = Seq(
+            Seq(
               `type`.map(t => "type" -> t),
               Some("contentType" -> ct),
               tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
               Some("md5" -> md5Hash)
             ).flatten.toMap
-            summary
           }
 
           val summary = summarise(None, ct, sourceFile.file)
