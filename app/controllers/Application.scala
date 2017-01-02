@@ -89,12 +89,13 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
         }
       }
 
-      val eventualContentTypeSpecificAttributes: Future[Seq[(String, Any)]] = if (`type` == "image") {
-        Future.successful(inferImageSpecificAttributes(metadata))
-      } else if (`type` == "video") {
-        inferVideoSpecificAttributes(file)
-      } else {
-        Future.successful(Seq())
+      val eventualContentTypeSpecificAttributes = `type` match {
+        case "image" =>
+          Future.successful(inferImageSpecificAttributes(metadata))
+        case "video" =>
+          inferVideoSpecificAttributes(file)
+        case _ =>
+          Future.successful(Seq())
       }
 
       eventualContentTypeSpecificAttributes.map { i =>
