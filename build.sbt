@@ -7,6 +7,7 @@ lazy val `media-monkey` = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
+resolvers += "openimaj" at "http://maven.openimaj.org"
 
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
@@ -15,6 +16,10 @@ libraryDependencies += "org.apache.tika" % "tika-core" % "1.11"
 libraryDependencies += "com.typesafe.play" %% "anorm" % "2.4.0"
 
 libraryDependencies += "org.im4java" % "im4java" % "1.4.0"
+
+libraryDependencies += "org.openimaj" % "core" % "1.3.5"
+libraryDependencies += "org.openimaj" % "core-image" % "1.3.5"
+libraryDependencies += "org.openimaj" % "faces" % "1.3.5"
 
 libraryDependencies += specs2 % Test
 
