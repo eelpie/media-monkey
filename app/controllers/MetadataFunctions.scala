@@ -1,14 +1,59 @@
 package controllers
 
-import java.io.File
+import java.io.{File, FileInputStream}
 
 import controllers.Application._
-import model.FormatSpecificAttributes
+import model.{FormatSpecificAttributes, Summary}
+import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait MetadataFunctions {
+
+  private val RecognisedImageTypes = Seq(
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/x-ms-bmp",
+    "image/tiff"
+  )
+
+  private val RecognisedVideoTypes = Seq(
+    "application/mp4",
+    "video/3gpp",
+    "video/m2ts",
+    "video/mp4",
+    "video/mpeg",
+    "video/quicktime",
+    "video/x-flv",
+    "video/x-m4v",
+    "video/x-matroska",
+    "video/x-ms-asf",
+    "video/x-msvideo",
+    "video/theora",
+    "video/webm"
+  )
+
+  def inferTypeFromContentType(contentType: String): Option[String] = {
+    if (RecognisedImageTypes.contains(contentType)) { // TODO not stricly true; something can be an image without having to be supported
+      Some("image")
+    } else if (RecognisedVideoTypes.contains(contentType)) {
+      Some("video")
+    } else {
+      None
+    }
+  }
+
+  def summarise(contentType: String, file: File): Summary = {
+    val `type` = inferTypeFromContentType(contentType)
+
+    val stream: FileInputStream = new FileInputStream(file)
+    val md5Hash = DigestUtils.md5Hex(stream)
+    stream.close()
+
+    Summary(`type`, contentType, tika.suggestedFileExtension(contentType), md5Hash)
+  }
 
   def parseExifRotationString(i: String): Option[Int] = {
     val ExifRotations = Map[String, Int](

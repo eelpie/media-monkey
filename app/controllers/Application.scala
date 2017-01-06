@@ -3,7 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import futures.Retry
-import model.FormatSpecificAttributes
+import model.{FormatSpecificAttributes, Summary}
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -26,30 +26,6 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
   val XHeight = "X-Height"
 
   case class OutputFormat(mineType: String, fileExtension: String)
-
-  val RecognisedImageTypes = Seq(
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/x-ms-bmp",
-    "image/tiff"
-  )
-
-  val RecognisedVideoTypes = Seq(
-    "application/mp4",
-    "video/3gpp",
-    "video/m2ts",
-    "video/mp4",
-    "video/mpeg",
-    "video/quicktime",
-    "video/x-flv",
-    "video/x-m4v",
-    "video/x-matroska",
-    "video/x-ms-asf",
-    "video/x-msvideo",
-    "video/theora",
-    "video/webm"
-  )
 
   val SupportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"), OutputFormat("image/x-icon", "ico"))
   val SupportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
@@ -89,33 +65,18 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
       eventualContentType.flatMap { contentType =>
         contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { ct =>
 
-          def summarise(`type`: Option[String], contentType: String, file: File): Map[String, String] = {
-            val stream: FileInputStream = new FileInputStream(sourceFile.file)
-            val md5Hash = DigestUtils.md5Hex(stream)
-            stream.close()
+          val summary = summarise(ct, sourceFile.file)
 
-            Seq(
-              `type`.map(t => "type" -> t),
-              Some("contentType" -> ct),
-              tika.suggestedFileExtension(ct).map(e => "fileExtension" -> e),
-              Some("md5" -> md5Hash)
-            ).flatten.toMap
-          }
-
-          val `type`: Option[String] = inferTypeFromContentType(ct)
-          Logger.info("Infered type from content type: " + `type` + " / " + ct)
-
-          val summary = summarise(`type`, ct, sourceFile.file)
-
-          `type`.fold {
+          implicit val sw = Json.writes[Summary]
+          summary.`type`.fold {
             sourceFile.clean()
-            Future.successful(UnsupportedMediaType(Json.toJson(metadata ++ summary)))
+            Future.successful(UnsupportedMediaType(Json.toJson(metadata).as[JsObject] ++ Json.toJson(summary).as[JsObject]))
 
           } { t =>
             inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
               sourceFile.clean()
               implicit val fsaw = Json.writes[FormatSpecificAttributes]
-              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation" ++ summary).as[JsObject] ++ Json.toJson(contentTypeSpecificAttributes).as[JsObject])
+              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation").as[JsObject] ++ Json.toJson(summary).as[JsObject] ++ Json.toJson(contentTypeSpecificAttributes).as[JsObject])
             }
           }
         }
@@ -242,17 +203,6 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
       }
 
       handleResult(eventualResult, callback)
-    }
-  }
-
-  private def inferTypeFromContentType(contentType: String): Option[String] = {
-
-    if (RecognisedImageTypes.contains(contentType)) {
-      Some("image")
-    } else if (RecognisedVideoTypes.contains(contentType)) {
-      Some("video")
-    } else {
-      None
     }
   }
 
