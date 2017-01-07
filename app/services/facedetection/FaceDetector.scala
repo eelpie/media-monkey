@@ -1,15 +1,29 @@
 package services.facedetection
 
 import java.io.InputStream
+import java.util
 
-import model.DetectedFace
+import org.openimaj.image.processing.face.detection.{DetectedFace, HaarCascadeDetector}
+import org.openimaj.image.{FImage, ImageUtilities}
 
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
 
 class FaceDetector {
 
-  def detectFaces(image: InputStream): Future[Seq[DetectedFace]] = {
-    Future.successful(Seq[DetectedFace]())
+  def detectFaces(source: InputStream): Future[Seq[model.DetectedFace]] = {
+      val detector = new HaarCascadeDetector()
+      val image: FImage = ImageUtilities.readF(source)
+      val result: util.List[DetectedFace] = detector.detectFaces(image)
+
+      Future.successful(result.map { r =>
+        val b = r.getBounds()
+        model.DetectedFace(bounds = model.Bounds(
+          (b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), (b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
+          confidence = r.getConfidence)
+      })
   }
 
 }
+
+object FaceDetector extends FaceDetector
