@@ -3,7 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import controllers.Application._
-import model.{FormatSpecificAttributes, Summary}
+import model.{FormatSpecificAttributes, Summary, Track}
 import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.Future
@@ -98,7 +98,8 @@ trait MetadataFunctions {
       orientedImageDimensions.map(d => d._1),
       orientedImageDimensions.map(d => d._2),
       rotation,
-      orientation)
+      orientation,
+      None)
   }
 
   def inferVideoSpecificAttributes(file: File): Future[FormatSpecificAttributes] = {
@@ -107,26 +108,16 @@ trait MetadataFunctions {
       r.replaceAll("[^\\d]", "").toInt
     }
 
-    mediainfoService.mediainfo(file).map { mit =>
-      val videoTrackDimensions = videoDimensions(mit)
-      val rotation = inferRotation(mit)
-
-      val trackFields: Option[Seq[(String, String)]] = mit.map { ts =>
-        ts.filter(t => t.trackType == "General" || t.trackType == "Video").flatMap { t => // TODO work out a good format to preserver all of this information
-          t.fields.toSeq
-        }
-      }
-
-      val combinedTrackFields: Seq[(String, String)] = Seq(trackFields).flatten.flatten
-      val dimensionFields: Seq[(String, Int)] = Seq(videoTrackDimensions.map(d => Seq("width" -> d._1, "height" -> d._2))).flatten.flatten
-
-      // combinedTrackFields ++ dimensionFields :+ ("rotation" -> rotation)
+    mediainfoService.mediainfo(file).map { mits =>
+      val videoTrackDimensions = videoDimensions(mits)
+      val rotation = inferRotation(mits)
 
       FormatSpecificAttributes(
         videoTrackDimensions.map(d => d._1),
         videoTrackDimensions.map(d => d._2),
         Some(rotation),
-        None)
+        None,
+        mits)
     }
   }
 

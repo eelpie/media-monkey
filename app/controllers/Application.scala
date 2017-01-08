@@ -63,6 +63,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
           implicit val pw = Json.writes[Point]
           implicit val bw = Json.writes[Bounds]
           implicit val dfw = Json.writes[DetectedFace]
+          implicit val tw = Json.writes[Track]
           implicit val mdw = Json.writes[Metadata]
 
           summary.`type`.fold {
