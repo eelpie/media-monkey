@@ -47,9 +47,8 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
     retry(3)(tika.meta(sourceFile.file)).flatMap { tmdo =>
 
-      val metadata = tmdo.getOrElse(Map[String, String]())
-
-      val eventualContentType = metadata.get(CONTENT_TYPE).fold {
+      val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
+      val eventualContentType = tikaContentType.fold {
         exiftool.contentType(sourceFile.file)
       }(ct => Future.successful(Some(ct)))
 
@@ -69,14 +68,14 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           summary.`type`.fold {
             sourceFile.clean()
-            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = metadata, faces = None))))
+            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, faces = None))))
 
           } { t =>
 
-            def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Map[String, String]): Future[Option[FormatSpecificAttributes]] = {
+            def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Option[Map[String, String]]): Future[Option[FormatSpecificAttributes]] = {
               `type` match {
                 case "image" =>
-                  Future.successful(Some(inferImageSpecificAttributes(metadata)))
+                  Future.successful(metadata.map(md => (inferImageSpecificAttributes(md))))
                 case "video" =>
                   inferVideoSpecificAttributes(file).map(i => Some(i))
                 case _ =>
@@ -84,14 +83,13 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
               }
             }
 
-            val eventualContentSpecificAttributes = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+            val eventualContentSpecificAttributes = inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo)
             val eventualDetectedFaces = if (t == "image") faceDetector.detectFaces(sourceFile.file).map(i => Some(i)) else Future.successful(None)
 
             eventualContentSpecificAttributes.flatMap { contentTypeSpecificAttributes =>
               eventualDetectedFaces.map { fs =>
-                Logger.info("Cleaning file: " + sourceFile.file.getAbsolutePath)
                 sourceFile.clean()
-                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata, faces = fs)))
+                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = tmdo, faces = fs)))
               }
             }
           }
