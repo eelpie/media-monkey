@@ -14,14 +14,13 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   val port: Port = 3334
   val localUrl = "http://localhost:" + port.toString
-  val tenSeconds = Duration(10, SECONDS)
   val thirtySeconds = Duration(30, SECONDS)
 
   "can detect images" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -33,7 +32,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -45,7 +44,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/test.txt"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(UNSUPPORTED_MEDIA_TYPE)
 
@@ -58,7 +57,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -72,7 +71,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
 
@@ -87,7 +86,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -99,7 +98,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -111,7 +110,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
@@ -125,7 +124,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       (Json.parse(response.body) \ "Display_aspect_ratio").toOption.get.as[String] must equalTo("16:9")
       (Json.parse(response.body) \ "Frame_rate").toOption.get.as[String] must equalTo("30.000 fps")
@@ -137,7 +136,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
       val rotationField = (Json.parse(response.body) \ "formatSpecificAttributes" \ "rotation").toOption
 
       rotationField.get.as[Int] must equalTo(90)
@@ -148,7 +147,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       val jsonResponse = Json.parse(response.body)
       (jsonResponse \ "summary" \ "md5").toOption.get.as[String] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
