@@ -2,8 +2,8 @@ import java.io.File
 
 import org.specs2.mutable._
 import play.api.Play.current
-import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.{WS, WSResponse}
+import play.api.libs.json.Json
+import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.api.test._
 
