@@ -1,6 +1,6 @@
 package services.facedetection
 
-import java.io.File
+import java.io.{FileInputStream, File}
 
 import model.Point
 import org.joda.time.{DateTime, Duration}
@@ -15,6 +15,7 @@ class FaceDetector {
 
   def detectFaces(source: File): Future[Seq[model.DetectedFace]] = {
       Future.successful{
+        Logger.info("Detecting faces in file: " + source.getAbsolutePath)
         val start = DateTime.now()
 
         val detector = new HaarCascadeDetector()
