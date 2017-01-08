@@ -3,7 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import futures.Retry
-import model.{Metadata, FormatSpecificAttributes, Summary}
+import model.{DetectedFace, Metadata, FormatSpecificAttributes, Summary}
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -11,6 +11,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.exiftool.ExiftoolService
+import services.facedetection.FaceDetector
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
@@ -38,6 +39,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
   val exiftool = ExiftoolService
   val imageService = ImageService
   val videoService = VideoService
+  val faceDetector = FaceDetector
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
@@ -63,7 +65,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
       }(ct => Future.successful(Some(ct)))
 
       eventualContentType.flatMap { contentType =>
-        contentType.fold(Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))) { ct =>
+        contentType.fold {
+          Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))
+        } { ct =>
 
           val summary = summarise(ct, sourceFile.file)
 
@@ -73,16 +77,17 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           summary.`type`.fold {
             sourceFile.clean()
-            val meta = Metadata(summary = summary, formatSpecificAttributes = None, metadata = metadata)
-            Future.successful(UnsupportedMediaType(Json.toJson(meta)))
+            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = metadata, faces = None))))
 
           } { t =>
-            inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
-              sourceFile.clean()
-              implicit val fsaw = Json.writes[FormatSpecificAttributes]
+            val eventualContentSpecificAttributes = inferContentTypeSpecificAttributes(t, sourceFile.file, metadata)
+            val eventualDetectedFaces = if (t == "image") faceDetector.detectFaces(sourceFile.file).map(i => Some(i)) else Future.successful(None)
 
-              val meta = Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata)
-              Ok(Json.toJson(meta))
+            eventualContentSpecificAttributes.flatMap { contentTypeSpecificAttributes =>
+              eventualDetectedFaces.map { fs =>
+                sourceFile.clean()
+                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata, faces = fs)))
+              }
             }
           }
         }

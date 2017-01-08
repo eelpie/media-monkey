@@ -1,6 +1,6 @@
 package services.facedetection
 
-import java.io.InputStream
+import java.io.File
 
 import org.joda.time.{DateTime, Duration}
 import org.openimaj.image.ImageUtilities
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 class FaceDetector {
 
-  def detectFaces(source: InputStream): Future[Seq[model.DetectedFace]] = {
+  def detectFaces(source: File): Future[Seq[model.DetectedFace]] = {
       Future.successful{
         val start = DateTime.now()
 

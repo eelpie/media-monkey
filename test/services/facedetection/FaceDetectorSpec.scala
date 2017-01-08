@@ -11,7 +11,7 @@ class FaceDetectorSpec extends Specification {
 
   "can detect faces" in {
     val imageWithSingleFace = new File("test/resources/face.jpg")
-    val detectedFaces = Await.result(FaceDetector.detectFaces(new FileInputStream(imageWithSingleFace)), Duration(10, SECONDS))
+    val detectedFaces = Await.result(FaceDetector.detectFaces(imageWithSingleFace), Duration(10, SECONDS))
     detectedFaces.size must equalTo(1)
   }
 
