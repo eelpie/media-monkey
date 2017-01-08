@@ -33,6 +33,10 @@ class ExiftoolService {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
         None
       }
+    }.recover {
+      case t: Throwable =>
+        Logger.error("exiftool call failed", t)
+        None
     }
   }
 
