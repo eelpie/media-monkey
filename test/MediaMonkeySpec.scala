@@ -14,14 +14,13 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   val port: Port = 3334
   val localUrl = "http://localhost:" + port.toString
-  val tenSeconds = Duration(10, SECONDS)
   val thirtySeconds = Duration(30, SECONDS)
 
   "can scale image to fit box along longest axis" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -35,7 +34,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -50,7 +49,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       response.header("X-width").get.toInt must equalTo(800)
@@ -62,7 +61,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0").post(new File("test/resources/IMG_9803.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -76,7 +75,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0&fill=true").post(new File("test/resources/IMG_9803.JPG"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -92,7 +91,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         withHeaders(("Accept" -> "image/png")).
         post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualScalingResponse, tenSeconds)
+      val response = Await.result(eventualScalingResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -106,7 +105,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         withHeaders(("Accept" -> "image/png")).
         post(new File("test/resources/IMG_9758.JPG"))
 
-      val response = Await.result(eventualScalingResponse, tenSeconds)
+      val response = Await.result(eventualScalingResponse, thirtySeconds)
 
       response.header("X-Width").get.toInt must equalTo(800)
       response.header("X-Height").get.toInt must equalTo(533)
@@ -119,7 +118,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         withHeaders(("Accept" -> "image/sausages")).
         post(new File("test/resources/IMG_9758.JPG"))
 
-      val scalingResponse = Await.result(eventualScalingResponse, tenSeconds)
+      val scalingResponse = Await.result(eventualScalingResponse, thirtySeconds)
 
       scalingResponse.status must equalTo(BAD_REQUEST)
     }
@@ -129,7 +128,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -143,7 +142,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
@@ -157,7 +156,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
 
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.status must equalTo(OK)
       response.header("X-Width").get.toInt must equalTo(120)
@@ -202,7 +201,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val eventualResponse = WS.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
-      val response = Await.result(eventualResponse, tenSeconds)
+      val response = Await.result(eventualResponse, thirtySeconds)
 
       response.header("X-Width").get.toInt must equalTo(568)
       response.header("X-Height").get.toInt must equalTo(320)
@@ -214,7 +213,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     writeResponseBodyToFile(response, tf)
 
     val eventualMetaResponse = WS.url(localUrl + "/meta").post(tf)
-    val metaResponse = Await.result(eventualMetaResponse, tenSeconds)
+    val metaResponse = Await.result(eventualMetaResponse, thirtySeconds)
     Json.parse(metaResponse.body)
   }
 
