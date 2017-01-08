@@ -11,7 +11,7 @@ trait MediainfoInterpreter {
 
   def videoCodec(mediainfoTracks: Option[Seq[Track]]): Option[String] = {
     mediainfoTracks.flatMap { mi =>
-      mi.find(t => t.trackType == Video).flatMap { vt =>
+      mi.find(t => t.`type` == Video).flatMap { vt =>
         vt.fields.get("Codec_ID")
       }
     }
@@ -24,7 +24,7 @@ trait MediainfoInterpreter {
     }
 
     mediainfoTracks.flatMap{ mi =>
-      mi.find(t => t.trackType == Video).flatMap{ vt =>
+      mi.find(t => t.`type` == Video).flatMap{ vt =>
         vt.fields.get(Width).flatMap(w =>
           vt.fields.get(Height).map(h =>
             (parsePixels(w), parsePixels(h))
@@ -40,7 +40,7 @@ trait MediainfoInterpreter {
       r.replaceAll("[^\\d]", "").toInt
     }
 
-    mediainfoTracks.flatMap(ts => ts.find(t => t.trackType == Video).flatMap(i => i.fields.get(Rotation))).fold(0)(mir => parseRotation(mir))
+    mediainfoTracks.flatMap(ts => ts.find(t => t.`type` == Video).flatMap(i => i.fields.get(Rotation))).fold(0)(mir => parseRotation(mir))
   }
 
 }
