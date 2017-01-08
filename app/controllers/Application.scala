@@ -91,7 +91,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
               eventualDetectedFaces.map { fs =>
                 Logger.info("Cleaning file: " + sourceFile.file.getAbsolutePath)
                 sourceFile.clean()
-                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata, faces = None)))
+                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata, faces = fs)))
               }
             }
           }
