@@ -3,7 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import futures.Retry
-import model.{DetectedFace, Metadata, FormatSpecificAttributes, Summary}
+import model._
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -73,6 +73,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           implicit val sw = Json.writes[Summary]
           implicit val fsaw = Json.writes[FormatSpecificAttributes]
+          implicit val pw = Json.writes[Point]
+          implicit val bw = Json.writes[Bounds]
+          implicit val dfw = Json.writes[DetectedFace]
           implicit val mdw = Json.writes[Metadata]
 
           summary.`type`.fold {

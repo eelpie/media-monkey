@@ -2,6 +2,7 @@ package services.facedetection
 
 import java.io.File
 
+import model.Point
 import org.joda.time.{DateTime, Duration}
 import org.openimaj.image.ImageUtilities
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector
@@ -21,7 +22,7 @@ class FaceDetector {
         val detected = detector.detectFaces(ImageUtilities.readF(source)).map { r =>
           val b = r.getBounds()
           model.DetectedFace(bounds = model.Bounds(
-            (b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), (b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
+            Point(b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), Point(b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
             confidence = r.getConfidence)
           }
 
