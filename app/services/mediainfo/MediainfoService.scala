@@ -34,6 +34,10 @@ class MediainfoService {
         Logger.warn("mediainfo process failed")
         None
       }
+    }.recover {
+      case t: Throwable =>
+        Logger.error("exiftool call failed", t)
+        None
     }
   }
 
