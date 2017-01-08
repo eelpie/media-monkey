@@ -24,9 +24,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
-      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(533)
+      (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(533)
     }
   }
 
@@ -38,9 +38,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
-      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(800)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(533)
+      (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(533)
     }
   }
 
@@ -65,9 +65,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
-      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(533)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta\ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(533)
+      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(800)
     }
   }
 
@@ -79,9 +79,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
-      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(600)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(800)
+      (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta ).toOption.get.as[Int] must equalTo(600)
+      (jsonMeta \ "formatSpecificAttributes"\ "height").toOption.get.as[Int] must equalTo(800)
     }
   }
 
@@ -94,8 +94,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val response = Await.result(eventualScalingResponse, thirtySeconds)
 
       response.status must equalTo(OK)
-      val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/png")
+      (metadataForResponse(response) \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/png")
     }
   }
 
@@ -132,7 +131,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "GPS Latitude").toOption.isEmpty must equalTo(true)
+      (jsonMeta \ "metadata" \ "GPS Latitude").toOption.isEmpty must equalTo(true)
     }
   }
 
@@ -146,7 +145,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("image/jpeg")
+      (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
     }
   }
 
@@ -163,8 +162,8 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       response.header("X-Height").get.toInt must equalTo(100)
 
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "width").toOption.get.as[Int] must equalTo(120)
-      (jsonMeta \ "height").toOption.get.as[Int] must equalTo(100)
+      (jsonMeta \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(120)
+      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(100)
     }
   }
 
@@ -177,7 +176,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(OK)
       response.header("X-Width").get.toInt must equalTo(284)
       response.header("X-Height").get.toInt must equalTo(160)
-      (metadataForResponse(response) \ "Content-Type").toOption.get.as[String] must equalTo("video/theora")
+      (metadataForResponse(response) \ "summary" \ "contentType").toOption.get.as[String] must equalTo("video/theora")
     }
   }
 
@@ -191,8 +190,9 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       response.header("Content-Type").get must equalTo("video/mp4")
+
       val jsonMeta = metadataForResponse(response)
-      (jsonMeta \ "Content-Type").toOption.get.as[String] must equalTo("application/mp4")
+      (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("application/mp4")
     }
   }
 
