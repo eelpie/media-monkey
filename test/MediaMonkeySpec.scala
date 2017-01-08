@@ -80,7 +80,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(OK)
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
-      (jsonMeta ).toOption.get.as[Int] must equalTo(600)
+      (jsonMeta \ "formatSpecificAttributes"\ "width").toOption.get.as[Int] must equalTo(600)
       (jsonMeta \ "formatSpecificAttributes"\ "height").toOption.get.as[Int] must equalTo(800)
     }
   }
