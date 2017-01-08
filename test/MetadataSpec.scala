@@ -25,7 +25,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "type").toOption.get.as[String] must equalTo("image")
+      (jsonResponse \ "summary" \ "type").toOption.get.as[String] must equalTo("image")
     }
   }
 
@@ -37,7 +37,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "fileExtension").toOption.get.as[String] must equalTo("jpg")
+      (jsonResponse \ "summary" \ "fileExtension").toOption.get.as[String] must equalTo("jpg")
     }
   }
 
@@ -50,7 +50,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(UNSUPPORTED_MEDIA_TYPE)
 
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "contentType").toOption.get.as[String] must equalTo("text/plain; charset=ISO-8859-1")
+      (jsonResponse \ "summary"  \ "contentType").toOption.get.as[String] must equalTo("text/plain; charset=ISO-8859-1")
     }
   }
 
@@ -62,9 +62,9 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2448)
-      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3264)
-      (jsonResponse \ "orientation").toOption.get.as[String] must equalTo("portrait")
+      (jsonResponse \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(2448)
+      (jsonResponse \ "formatSpecificAttributes"\ "height").toOption.get.as[Int] must equalTo(3264)
+      (jsonResponse \ "formatSpecificAttributes" \ "orientation").toOption.get.as[String] must equalTo("portrait")
     }
   }
 
@@ -77,9 +77,9 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(OK)
 
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(2304)
-      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(3456)
-      (jsonResponse \ "orientation").toOption.get.as[String] must equalTo("portrait")
+      (jsonResponse \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(2304)
+      (jsonResponse \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(3456)
+      (jsonResponse \ "formatSpecificAttributes" \ "orientation").toOption.get.as[String] must equalTo("portrait")
     }
   }
 
@@ -91,7 +91,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "GPS Latitude").toOption.get.as[String] must equalTo("37° 45' 18.26\"")
+      (jsonResponse \ "metadata" \ "GPS Latitude").toOption.get.as[String] must equalTo("37° 45' 18.26\"")
     }
   }
 
@@ -103,7 +103,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "type").toOption.get.as[String] must equalTo("video")
+      (jsonResponse \ "summary" \ "type").toOption.get.as[String] must equalTo("video")
     }
   }
 
@@ -115,8 +115,8 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       response.status must equalTo(OK)
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "width").toOption.get.as[Int] must equalTo(568)
-      (jsonResponse \ "height").toOption.get.as[Int] must equalTo(320)
+      (jsonResponse \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(568)
+      (jsonResponse \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(320)
     }
   }
 
@@ -138,20 +138,20 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
 
       val response = Await.result(eventualResponse, tenSeconds)
-      val rotationField = (Json.parse(response.body) \ "rotation").toOption
+      val rotationField = (Json.parse(response.body) \ "formatSpecificAttributes" \ "rotation").toOption
 
       rotationField.get.as[Int] must equalTo(90)
     }
   }
 
-  "md5 hash should be included in metadata to assist with duplicate detection" in {
+  "md5 hash should be included in summary to assist with duplicate detection" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, tenSeconds)
 
       val jsonResponse = Json.parse(response.body)
-      (jsonResponse \ "md5").toOption.get.as[String] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
+      (jsonResponse \ "summary" \ "md5").toOption.get.as[String] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
     }
   }
 

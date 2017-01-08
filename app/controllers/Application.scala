@@ -3,7 +3,7 @@ package controllers
 import java.io.{File, FileInputStream}
 
 import futures.Retry
-import model.{FormatSpecificAttributes, Summary}
+import model.{Metadata, FormatSpecificAttributes, Summary}
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
@@ -68,15 +68,21 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
           val summary = summarise(ct, sourceFile.file)
 
           implicit val sw = Json.writes[Summary]
+          implicit val fsaw = Json.writes[FormatSpecificAttributes]
+          implicit val mdw = Json.writes[Metadata]
+
           summary.`type`.fold {
             sourceFile.clean()
-            Future.successful(UnsupportedMediaType(Json.toJson(metadata).as[JsObject] ++ Json.toJson(summary).as[JsObject]))
+            val meta = Metadata(summary = summary, formatSpecificAttributes = None, metadata = metadata)
+            Future.successful(UnsupportedMediaType(Json.toJson(meta)))
 
           } { t =>
             inferContentTypeSpecificAttributes(t, sourceFile.file, metadata).map { contentTypeSpecificAttributes =>
               sourceFile.clean()
               implicit val fsaw = Json.writes[FormatSpecificAttributes]
-              Ok(Json.toJson(metadata - "width" - "height" - "orientation" - "rotation").as[JsObject] ++ Json.toJson(summary).as[JsObject] ++ Json.toJson(contentTypeSpecificAttributes).as[JsObject])
+
+              val meta = Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = metadata)
+              Ok(Json.toJson(meta))
             }
           }
         }
