@@ -1,10 +1,9 @@
 package controllers
 
-import java.io.{File, FileInputStream}
+import java.io.File
 
 import futures.Retry
 import model._
-import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
@@ -68,7 +67,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           summary.`type`.fold {
             sourceFile.clean()
-            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, faces = None))))
+            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo))))
 
           } { t =>
 
@@ -83,15 +82,11 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
               }
             }
 
-            val eventualContentSpecificAttributes = inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo)
-            val eventualDetectedFaces = if (t == "image") faceDetector.detectFaces(sourceFile.file).map(i => Some(i)) else Future.successful(None)
-
-            eventualContentSpecificAttributes.flatMap { contentTypeSpecificAttributes =>
-              eventualDetectedFaces.map { fs =>
-                sourceFile.clean()
-                Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = tmdo, faces = fs)))
-              }
+            inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo).map { contentTypeSpecificAttributes =>
+              sourceFile.clean()
+              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = tmdo)))
             }
+
           }
         }
       }
