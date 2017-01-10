@@ -8,6 +8,7 @@ scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
+resolvers += "commons-imaging" at "https://repository.apache.org/content/repositories/snapshots"
 
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
@@ -20,6 +21,8 @@ libraryDependencies += "org.im4java" % "im4java" % "1.4.0"
 libraryDependencies += "org.openimaj" % "core" % "1.3.5"
 libraryDependencies += "org.openimaj" % "core-image" % "1.3.5"
 libraryDependencies += "org.openimaj" % "faces" % "1.3.5"
+
+libraryDependencies += "org.apache.commons" % "commons-imaging" % "1.0-SNAPSHOT"
 
 libraryDependencies += specs2 % Test
 
