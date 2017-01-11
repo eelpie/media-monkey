@@ -134,19 +134,17 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
     }
   }
 
-  def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], f: Option[Boolean]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def scale(w: Option[Int], h: Option[Int], rotate: Option[Int], callback: Option[String], fill: Option[Boolean], gravity: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val width = w
     val height = h
     val rotationToApply = rotate.getOrElse(0)
-
-    val fill = f.getOrElse(false)
 
     val sourceFile = request.body
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
-      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill).flatMap { ro =>
+      val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill.getOrElse(false), gravity).flatMap { ro =>
         sourceFile.clean()
 
         ro.map { r =>

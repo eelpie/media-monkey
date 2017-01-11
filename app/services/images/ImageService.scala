@@ -56,9 +56,13 @@ class ImageService {
 
   }
 
-  def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean): Future[Option[File]] = {
+  def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean, gravity: Option[String]): Future[Option[File]] = {
 
     def imResizeOperation(width: Option[Int], height: Option[Int], rotate: Double, fill: Boolean): IMOperation = {
+
+      val PermittedGravities = Set("North", "Center")
+      val g = gravity.flatMap(g => PermittedGravities.find(i => i == g)).getOrElse("Center")
+
       if (fill) {
         val op: IMOperation = new IMOperation()
         op.addImage()
@@ -68,7 +72,7 @@ class ImageService {
         width.flatMap { w =>
           height.map { h =>
             op.resize(w, h, "^")
-            op.gravity("Center")
+            op.gravity(g)
             op.extent(w, h)
           }
         }

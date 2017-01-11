@@ -28,7 +28,7 @@ Backed by imagemagick.
 
 ###POST /scale
 
-width, height, rotate, fill
+width, height, rotate, fill, gravity(Center / North)
 callback
 Accepts header
 
