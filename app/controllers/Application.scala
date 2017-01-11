@@ -85,7 +85,19 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
             inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo).map { contentTypeSpecificAttributes =>
               sourceFile.clean()
-              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = tmdo)))
+
+              val trackMetadata: Option[Seq[(String, String)]] = contentTypeSpecificAttributes.flatMap { ctsa =>
+                ctsa.tracks.map { ts =>
+                  val tracksToExportAsMetadata = Set("General", "Video")
+                  ts.filter(t => tracksToExportAsMetadata contains t.`type`).map { t =>
+                    t.fields.toSeq
+                  }.flatten
+                }
+              }
+
+              val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map()))   // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
+
+              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata))))
             }
 
           }
