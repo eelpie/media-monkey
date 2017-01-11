@@ -40,6 +40,16 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
   val videoService = VideoService
   val faceDetector = FaceDetector
 
+  def defectFaces = Action.async(BodyParsers.parse.temporaryFile) { request =>
+    val sourceFile = request.body
+    faceDetector.detectFaces(sourceFile.file).map { dfs =>
+      implicit val pw = Json.writes[Point]
+      implicit val bw = Json.writes[Bounds]
+      implicit val dfw = Json.writes[DetectedFace]
+      Ok(Json.toJson(dfs))
+    }
+  }
+
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     val sourceFile = request.body
@@ -60,9 +70,6 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           implicit val sw = Json.writes[Summary]
           implicit val fsaw = Json.writes[FormatSpecificAttributes]
-          implicit val pw = Json.writes[Point]
-          implicit val bw = Json.writes[Bounds]
-          implicit val dfw = Json.writes[DetectedFace]
           implicit val tw = Json.writes[Track]
           implicit val mdw = Json.writes[Metadata]
 

@@ -2,7 +2,7 @@ import java.io.File
 
 import org.specs2.mutable._
 import play.api.Play.current
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.{WS, WSResponse}
 import play.api.test.Helpers._
 import play.api.test._
@@ -198,13 +198,21 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "video thumbnails can be rotated and letter boxed to fit requested dimensions" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
+      val response = Await.result(WS.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
         withHeaders(("Accept" -> "image/jpeg")).
-        post(new File("test/resources/IMG_0004.MOV"))
-      val response = Await.result(eventualResponse, thirtySeconds)
+        post(new File("test/resources/IMG_0004.MOV")), thirtySeconds)
 
       response.header("X-Width").get.toInt must equalTo(568)
       response.header("X-Height").get.toInt must equalTo(320)
+    }
+  }
+
+  "faces in images can be detected so that client apps can make more informed cropping decisions" in {
+    running(TestServer(port)) {
+      val response = Await.result(WS.url(localUrl + "/detect-faces").
+        post(new File("test/resources/5282722938_e0e2515624_o.jpg")), thirtySeconds)
+
+      Json.parse(response.body).as[JsArray].value.size must equalTo(1)
     }
   }
 
