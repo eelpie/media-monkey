@@ -11,6 +11,7 @@ import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.exiftool.ExiftoolService
 import services.facedetection.FaceDetector
+import services.geo.ExifLocationExtractor
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
@@ -20,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object Application extends Controller with MediainfoInterpreter with Retry with MetadataFunctions {
+object Application extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor {
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -75,7 +76,12 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
           summary.`type`.fold {
             sourceFile.clean()
-            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo))))
+
+            val latLong: Option[LatLong] = tmdo.flatMap { md =>  // TODO needs mediainfo data as well
+                extractLocationFrom(md)
+            }
+
+            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, latLong))))
 
           } { t =>
 
