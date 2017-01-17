@@ -141,7 +141,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
     }
   }
 
-  "md5 hash should be included in summary to assist with duplicate detection" in {
+  "md5 hash should be included in the summary to assist with duplicate detection" in {
     running(TestServer(port)) {
       val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
@@ -149,6 +149,30 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
       val jsonResponse = Json.parse(response.body)
       (jsonResponse \ "summary" \ "md5").toOption.get.as[String] must equalTo("8eecbf514c06b9a98744b9ef7bc33ec0")
+    }
+  }
+
+  "Location should be extracted from image EXIF GPS tags if available" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+
+      val response = Await.result(eventualResponse, thirtySeconds)
+
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "location" \ "latitude").toOption.get.as[Double] must equalTo(37.7551)
+      (jsonResponse \ "location" \ "longitude").toOption.get.as[Double] must equalTo(-119.6)
+    }
+  }
+
+  "Location should be extracted from video ISO6709 fields if available" in {
+    running(TestServer(port)) {
+      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
+
+      val response = Await.result(eventualResponse, thirtySeconds)
+
+      val jsonResponse = Json.parse(response.body)
+      (jsonResponse \ "location" \ "latitude").toOption.get.as[Double] must equalTo(50.7215)
+      (jsonResponse \ "location" \ "longitude").toOption.get.as[Double] must equalTo(-1.8374)
     }
   }
 
