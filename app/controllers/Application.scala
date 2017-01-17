@@ -108,7 +108,7 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
               val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map()))   // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
 
-              val location = tmdo.flatMap( md => extractLocationFrom(md))
+              val location = tmdo.flatMap(md => extractLocationFrom(combinedMetadata))
 
               Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location)))
             }
