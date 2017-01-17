@@ -77,11 +77,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
           summary.`type`.fold {
             sourceFile.clean()
 
-            val latLong: Option[LatLong] = tmdo.flatMap { md =>  // TODO needs mediainfo data as well
-                extractLocationFrom(md)
-            }
+            val location = tmdo.flatMap(md => extractLocationFrom(md))
 
-            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, latLong))))
+            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location))))
 
           } { t =>
 
@@ -110,7 +108,9 @@ object Application extends Controller with MediainfoInterpreter with Retry with 
 
               val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map()))   // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
 
-              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata))))
+              val location = tmdo.flatMap( md => extractLocationFrom(md))
+
+              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location)))
             }
 
           }
