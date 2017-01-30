@@ -14,9 +14,8 @@ import services.video.VideoService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
-object Application extends Controller with Retry with MediainfoInterpreter {
+object Application extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -191,9 +190,6 @@ object Application extends Controller with Retry with MediainfoInterpreter {
           Logger.warn("Failed to process file; not calling back")
 
         } { r =>
-
-          val ThirtySeconds = Duration(30, SECONDS)
-
           Logger.info("Calling back to " + c)
           val of: OutputFormat = r._3
           WS.url(c).withHeaders(headersFor(of, r._2): _*).
@@ -205,7 +201,7 @@ object Application extends Controller with Retry with MediainfoInterpreter {
           }
         }
       }
-      Future.successful(Accepted(Json.toJson("Accepted")))
+      Future.successful(Accepted(JsonAccepted))
     }
   }
 

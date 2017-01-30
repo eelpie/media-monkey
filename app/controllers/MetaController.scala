@@ -4,9 +4,10 @@ import java.io.File
 
 import futures.Retry
 import model._
+import play.api.Logger
 import play.api.libs.concurrent.Akka
-import play.api.libs.json.Json
-import play.api.mvc.{Action, BodyParsers, Controller}
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.exiftool.ExiftoolService
 import services.facedetection.FaceDetector
 import services.geo.ExifLocationExtractor
@@ -15,18 +16,11 @@ import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
 import services.video.VideoService
 import play.api.Play.current
+import play.api.libs.ws.WS
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object MetaController extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor {
-
-  case class OutputFormat(mineType: String, fileExtension: String)
-
-  val SupportedImageOutputFormats = Seq(OutputFormat("image/jpeg", "jpg"), OutputFormat("image/png", "png"), OutputFormat("image/gif", "gif"), OutputFormat("image/x-icon", "ico"))
-  val SupportedVideoOutputFormats = Seq(OutputFormat("video/theora", "ogg"), OutputFormat("video/mp4", "mp4"), OutputFormat("image/jpeg", "jpg"))
-  val AudioOutputFormat = OutputFormat("audio/wav", "wav")
-
-  val UnsupportedOutputFormatRequested = "Unsupported output format requested"
+object MetaController extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
 
   val mediainfoService: MediainfoService = MediainfoService
   val tika = TikaService
@@ -35,17 +29,40 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   val videoService = VideoService
   val faceDetector = FaceDetector
 
-  def defectFaces = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def defectFaces(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+
+    def asJson(dfs: Seq[DetectedFace]): JsValue = {
+      implicit val pw = Json.writes[Point]
+      implicit val bw = Json.writes[Bounds]
+      implicit val dfw = Json.writes[DetectedFace]
+      Json.toJson(dfs)
+    }
 
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
     val sourceFile = request.body
-    faceDetector.detectFaces(sourceFile.file).map { dfs =>
-      implicit val pw = Json.writes[Point]
-      implicit val bw = Json.writes[Bounds]
-      implicit val dfw = Json.writes[DetectedFace]
-      Ok(Json.toJson(dfs))
+
+    val eventualDetectedFaces = faceDetector.detectFaces(sourceFile.file)
+
+    callback.fold {
+      eventualDetectedFaces.map { dfs =>
+        sourceFile.clean()
+        Ok(asJson(dfs))
+      }
+
+    }{ c =>
+      eventualDetectedFaces.map { dfs =>
+        sourceFile.clean()
+        Logger.info("Calling back to " + c)
+        WS.url(c).withRequestTimeout(ThirtySeconds.toMillis).
+          post(asJson(dfs)).map { rp =>
+            Logger.info("Response from callback url " + callback + ": " + rp.status)
+          }
+      }
+
+      Future.successful(Accepted(JsonAccepted))
     }
+
   }
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
