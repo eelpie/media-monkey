@@ -5,11 +5,14 @@ import java.io.{File, FileInputStream}
 import controllers.Application._
 import model.{FormatSpecificAttributes, Summary, Track}
 import org.apache.commons.codec.digest.DigestUtils
+import services.tika.TikaService
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait MetadataFunctions {
+
+  val tika: TikaService
 
   private val RecognisedImageTypes = Seq(
     "image/jpeg",

@@ -1,7 +1,8 @@
-POST        /meta		        controllers.Application.meta
+POST        /meta		            controllers.MetaController.meta
+POST        /meta/detect-faces       controllers.MetaController.defectFaces
+
 POST        /crop               controllers.Application.crop(width: Int, height: Int, x: Int, y: Int)
 POST        /scale              controllers.Application.scale(width: Option[Int], height: Option[Int], rotate: Option[Int], callback: Option[String], fill: Option[Boolean], gravity: Option[String])
-POST        /detect-faces       controllers.Application.defectFaces
 
 POST        /video/transcode    controllers.Application.videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double])
 POST        /video/strip        controllers.Application.videoStrip(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double])
