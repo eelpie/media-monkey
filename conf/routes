@@ -1,5 +1,5 @@
 POST        /meta		                controllers.MetaController.meta
-POST        /meta/detect-faces          controllers.MetaController.defectFaces(callback: Option[String])
+POST        /detect-faces               controllers.MetaController.defectFaces(callback: Option[String])
 
 POST        /crop               controllers.Application.crop(width: Int, height: Int, x: Int, y: Int)
 POST        /scale              controllers.Application.scale(width: Option[Int], height: Option[Int], rotate: Option[Int], callback: Option[String], fill: Option[Boolean], gravity: Option[String])
