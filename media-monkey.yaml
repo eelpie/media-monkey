@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: media-monkey
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: media-monkey
+    spec:
+      containers:
+      - name: media-monkey
+        image: localhost:5000/playskool
+        ports:
+        - containerPort: 9001
