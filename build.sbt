@@ -48,3 +48,16 @@ javaOptions in Universal ++= Seq(
   // -J params will be added as jvm parameters
   "-J-Xmx2048m"
 )
+
+
+enablePlugins(DockerPlugin)
+
+import com.typesafe.sbt.packager.docker._
+
+dockerBaseImage := "debian:jessie-backports"
+dockerCommands ++= Seq(
+  Cmd("USER", "root"),
+  ExecCmd("RUN", "apt-get", "update"),
+  ExecCmd("RUN", "apt-get", "upgrade", "-y"),
+  ExecCmd("RUN", "apt-get", "install", "-y", "openjdk-8-jdk-headless:amd64")
+)
