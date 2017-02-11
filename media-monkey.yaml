@@ -9,6 +9,7 @@ spec:
   ports:
   - port: 9001
     nodePort: 32001
+    name: media-monkey
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -23,6 +24,10 @@ spec:
     spec:
       containers:
       - name: media-monkey
-        image: localhost:5000/playskool
+        image: localhost:5000/media-monkey:1.0
         ports:
         - containerPort: 9001
+      - name: apache-tika
+        image: localhost:5000/apache-tika:1.11
+        ports:
+        - containerPort: 9998
