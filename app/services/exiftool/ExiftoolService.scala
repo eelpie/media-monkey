@@ -12,27 +12,32 @@ import scala.concurrent.ExecutionContext.Implicits.{global => ec}
 class ExiftoolService {
 
   def contentType(f: File): Future[Option[String]] = {
-    Future {
-      val mediainfoCmd = Seq("exiftool", "-json", f.getAbsolutePath)
 
-      val out: StringBuilder = new StringBuilder()
-      val logger: ProcessLogger = ProcessLogger(l => {
+    def parse(json: String): Option[String] = {
+      Json.parse(json).\\("MIMEType").headOption.map { j =>
+        j.as[String]
+      }
+    }
+
+    Future {
+      val cmd = Seq("exiftool", "-json", f.getAbsolutePath)
+
+      val out = new StringBuilder()
+      val logger = ProcessLogger(l => {
         out.append(l)
       })
 
-      val process: Process = mediainfoCmd.run(logger)
+      val process = cmd.run(logger)
 
-      val exitValue: Int = process.exitValue() // Blocks until the process completes
-      Logger.debug("exiftool exit value: " + exitValue)
+      val exitValue = process.exitValue()
       if (exitValue == 0) {
-        val json: String = out.mkString
-        Logger.debug("exiftool output: " + json)
-        parse(json)
+        parse(out.mkString)
 
       } else {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
         None
       }
+
     }.recover {
       case t: Throwable =>
         Logger.error("exiftool call failed", t)
@@ -46,12 +51,6 @@ class ExiftoolService {
 
   def extractXmp(f: File): Future[Option[String]] = {
     Future.successful(Some("TODO")) // TODO implement
-  }
-
-  def parse(json: String): Option[String] = {
-    Json.parse(json).\\("MIMEType").headOption.map { j =>
-      j.as[String]
-    }
   }
 
 }

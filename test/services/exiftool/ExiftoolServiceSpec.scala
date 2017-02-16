@@ -29,12 +29,4 @@ class ExiftoolServiceSpec extends Specification {
     xmp must contain("A test title")
   }
 
-  "can parse exiftool json output" in {
-    val exiftoolOutput = scala.io.Source.fromFile("test/resources/exiftool.json").mkString
-
-    val contentType = ExiftoolService.parse(exiftoolOutput)
-
-    contentType must equalTo(Some("video/quicktime"))
-  }
-
 }
