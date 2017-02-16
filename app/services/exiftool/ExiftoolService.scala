@@ -40,6 +40,14 @@ class ExiftoolService {
     }
   }
 
+  def addXmp(f: File, field: String): Future[Option[File]] = {
+    Future.successful(Some(f)) // TODO implement
+  }
+
+  def extractXmp(f: File): Future[Option[String]] = {
+    Future.successful(Some("TODO")) // TODO implement
+  }
+
   def parse(json: String): Option[String] = {
     Json.parse(json).\\("MIMEType").headOption.map { j =>
       j.as[String]

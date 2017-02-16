@@ -19,6 +19,16 @@ class ExiftoolServiceSpec extends Specification {
     contentType must equalTo(Some("video/quicktime"))
   }
 
+  "can add XMP metadata to images" in {
+    val imageFile = new File("test/resources/IMG_0004.MOV")
+
+    val withMetadata: File = Await.result(ExiftoolService.addXmp(imageFile, "dc:Title=A test title"), tenSeconds).get
+
+    val xmp = Await.result(ExiftoolService.extractXmp(withMetadata), tenSeconds).get
+
+    xmp must contain("A test title")
+  }
+
   "can parse exiftool json output" in {
     val exiftoolOutput = scala.io.Source.fromFile("test/resources/exiftool.json").mkString
 
