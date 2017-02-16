@@ -78,7 +78,7 @@ class ExiftoolService {
       val outputFile = File.createTempFile("xmp", ".tmp")
       FileUtils.copyFile(f, outputFile)
 
-      val cmd = Seq("exiftool", "-XMP-" + field, "-b", f.getAbsolutePath)  // TODO escape
+      val cmd = Seq("exiftool", "-XMP-" + field, f.getAbsolutePath)  // TODO escape
 
       val out = new StringBuilder()
       val logger = ProcessLogger(l => {
