@@ -25,6 +25,7 @@ libraryDependencies += "org.openimaj" % "faces" % "1.3.5"
 libraryDependencies += "us.fatehi" % "pointlocation6709" % "4.1"
 
 libraryDependencies += "org.apache.commons" % "commons-imaging" % "1.0-SNAPSHOT"
+libraryDependencies += "commons-io" % "commons-io" % "2.5"
 
 libraryDependencies += specs2 % Test
 

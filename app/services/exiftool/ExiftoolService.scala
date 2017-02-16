@@ -2,6 +2,7 @@ package services.exiftool
 
 import java.io.File
 
+import org.apache.commons.io.FileUtils
 import play.api.Logger
 import play.api.libs.json.Json
 
@@ -45,13 +46,63 @@ class ExiftoolService {
     }
   }
 
-  def addXmp(f: File, field: String): Future[Option[File]] = {
-    Future.successful(Some(f)) // TODO implement
+  def extractXmp(f: File): Future[Option[String]] = {
+    Future {
+      val cmd = Seq("exiftool", "-xmp", "-b", f.getAbsolutePath)
+
+      val out = new StringBuilder()
+      val logger = ProcessLogger(l => {
+        out.append(l)
+      })
+
+      val process = cmd.run(logger)
+
+      val exitValue = process.exitValue()
+      if (exitValue == 0) {
+        Some(out.mkString)
+
+      } else {
+        Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
+        None
+      }
+
+    }.recover {
+      case t: Throwable =>
+        Logger.error("exiftool call failed", t)
+        None
+    }
   }
 
-  def extractXmp(f: File): Future[Option[String]] = {
-    Future.successful(Some("TODO")) // TODO implement
+  def addXmp(f: File, field: String): Future[Option[File]] = {
+    Future {
+      val outputFile = File.createTempFile("xmp", ".tmp")
+      FileUtils.copyFile(f, outputFile)
+
+      val cmd = Seq("exiftool", "-XMP-dc:Title=" + field, "-b", f.getAbsolutePath)  // TODO escape
+
+      val out = new StringBuilder()
+      val logger = ProcessLogger(l => {
+        out.append(l)
+      })
+
+      val process = cmd.run(logger)
+
+      val exitValue = process.exitValue()
+      if (exitValue == 0) {
+        Some(outputFile)
+
+      } else {
+        Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
+        None
+      }
+
+    }.recover {
+      case t: Throwable =>
+        Logger.error("exiftool call failed", t)
+        None
+    }
   }
+
 
 }
 
