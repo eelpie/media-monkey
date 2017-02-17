@@ -73,12 +73,15 @@ class ExiftoolService {
     }
   }
 
-  def addXmp(f: File, field: String): Future[Option[File]] = {
+  def addXmp(f: File, field: (String, String)): Future[Option[File]] = {
     Future {
       val outputFile = File.createTempFile("xmp", ".tmp")
       FileUtils.copyFile(f, outputFile)
 
-      val cmd = Seq("exiftool", "-XMP-" + field, outputFile.getAbsolutePath)  // TODO escape
+      val fieldFile =  File.createTempFile("xmp", ".field")
+      FileUtils.writeStringToFile(fieldFile, field._2)
+
+      val cmd = Seq("exiftool", "-XMP-" + field._1 + "<=" + fieldFile.getAbsolutePath, outputFile.getAbsolutePath)
 
       val out = new StringBuilder()
       val logger = ProcessLogger(l => {

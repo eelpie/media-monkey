@@ -22,7 +22,7 @@ class ExiftoolServiceSpec extends Specification {
   "can add XMP metadata to images" in {
     val imageFile = new File("test/resources/IMG_0004.MOV")
 
-    val withMetadata: File = Await.result(ExiftoolService.addXmp(imageFile, "dc:Title=A test title"), tenSeconds).get
+    val withMetadata: File = Await.result(ExiftoolService.addXmp(imageFile, ("dc:Title", "A test title")), tenSeconds).get
 
     val xmp = Await.result(ExiftoolService.extractXmp(withMetadata), tenSeconds).get
 
