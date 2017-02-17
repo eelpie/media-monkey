@@ -39,11 +39,18 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       Future.successful(BadRequest(Json.toJson("No file seen on request")))
 
     } { bf =>
-      body.dataParts.get("tags").headOption.fold {
+      val tagsJson = body.dataParts.get("tags").headOption.flatMap(ts => ts.headOption)
+
+      tagsJson.fold {
         Future.successful(BadRequest(Json.toJson("No tags seen on request")))
 
-      } { tos =>
-        Logger.info("Tags: " + tos)
+      } { tj =>
+      Logger.info("Tags JSON: " + tj)
+
+        implicit val metadataTags = Json.reads[MetadataTags]
+        val tags = Json.parse(tj).as[MetadataTags]
+
+        Logger.info("Tags: " + tags)
 
         ExiftoolService.addXmp(bf.ref.file, ("dc:Title", "A test title")).map { fo =>
           fo.fold {
@@ -167,6 +174,6 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
-  case class MetadataTags(title: Option[String], description: Option[String])
+  case class MetadataTags(title: Option[String], description: Option[String], created: Option[String])
 
 }

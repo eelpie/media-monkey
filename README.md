@@ -10,6 +10,18 @@ Backed by Apache Tika and mediainfo.
 
 The media file should be sent as raw bytes on the request body.
 
+
+
+###POST /meta/tag
+
+Apply meta data tags to an image file.
+
+```
+title
+description
+created
+```
+
 ###POST /detect-faces
 
 Attempt to detect faces in the posted image.
