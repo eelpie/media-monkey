@@ -58,7 +58,9 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             tags.title.map(t => Seq("dc:Title").map(i => (i, t))),
             tags.description.map(d => Seq("dc:Description").map(i => (i, d))),
             tags.attribution.map(c => Seq("dc:Contributor").map(i => (i, c))),
-            tags.created.map(d => Seq("dc:Date").map(i => (i, DateTimeFormat.print(d))))
+            tags.created.map(d => Seq("dc:Date").map(i => (i, DateTimeFormat.print(d)))),
+            tags.email.map(e => Seq("iptcCore:CreatorWorkEmail").map(i => (i, e))),
+            tags.place.map(p => Seq("iptcExt:LocationShown").map(i => (i, p)))
         ).flatten.flatten
 
         Logger.info("Tag to add: " + tags)
