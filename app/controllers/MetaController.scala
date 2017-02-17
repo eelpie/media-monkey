@@ -54,7 +54,8 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
         val tagsToAdd: Seq[(String, String)] = Seq(
             tags.title.map(t => Seq("dc:Title").map(i => (i, t))),
-            tags.description.map(d => Seq("dc:Description").map(i => (i, d)))
+            tags.description.map(d => Seq("dc:Description").map(i => (i, d))),
+            tags.attribution.map(c => Seq("dc:Contributor").map(i => (i, c)))
         ).flatten.flatten
 
         Logger.info("Tag to add: " + tags)
