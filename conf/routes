@@ -1,4 +1,5 @@
 POST        /meta		                controllers.MetaController.meta
+POST        /meta/tag		            controllers.MetaController.tag
 POST        /detect-faces               controllers.MetaController.defectFaces(callback: Option[String])
 
 POST        /crop               controllers.Application.crop(width: Int, height: Int, x: Int, y: Int)

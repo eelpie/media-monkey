@@ -5,9 +5,11 @@ import java.io.File
 import futures.Retry
 import model._
 import play.api.Logger
+import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, BodyParsers, Controller, Result}
+import play.api.libs.ws.WS
+import play.api.mvc.{Action, BodyParsers, Controller}
 import services.exiftool.ExiftoolService
 import services.facedetection.FaceDetector
 import services.geo.ExifLocationExtractor
@@ -15,8 +17,6 @@ import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
 import services.video.VideoService
-import play.api.Play.current
-import play.api.libs.ws.WS
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -28,6 +28,20 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   val imageService = ImageService
   val videoService = VideoService
   val faceDetector = FaceDetector
+
+  def tag = Action.async(BodyParsers.parse.temporaryFile) { request =>
+    ExiftoolService.addXmp(request.body.file, ("dc:Title", "A test title")).map { fo =>
+      fo.fold {
+        UnprocessableEntity(Json.toJson("Could not process file"))
+
+      }{ f =>
+        Ok.sendFile(f, onClose = () => {
+          Logger.debug("Deleting tmp file after sending file: " + f)
+          f.delete()
+        })
+      }
+    }
+  }
 
   def defectFaces(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
