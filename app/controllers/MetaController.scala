@@ -39,16 +39,24 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       Future.successful(BadRequest(Json.toJson("No file seen on request")))
 
     } { bf =>
-      ExiftoolService.addXmp(bf.ref.file, ("dc:Title", "A test title")).map { fo =>
-        fo.fold {
-          UnprocessableEntity(Json.toJson("Could not process file"))
+      body.dataParts.get("tags").headOption.fold {
+        Future.successful(BadRequest(Json.toJson("No tags seen on request")))
 
-        } { f =>
-          Ok.sendFile(f, onClose = () => {
-            Logger.debug("Deleting tmp file after sending file: " + f)
-            f.delete()
-          })
+      } { tos =>
+        Logger.info("Tags: " + tos)
+
+        ExiftoolService.addXmp(bf.ref.file, ("dc:Title", "A test title")).map { fo =>
+          fo.fold {
+            UnprocessableEntity(Json.toJson("Could not process file"))
+
+          } { f =>
+            Ok.sendFile(f, onClose = () => {
+              Logger.debug("Deleting tmp file after sending file: " + f)
+              f.delete()
+            })
+          }
         }
+
       }
     }
   }
