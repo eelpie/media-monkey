@@ -18,7 +18,7 @@ import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
 import services.video.VideoService
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 object MetaController extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
 
@@ -30,6 +30,9 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   val faceDetector = FaceDetector
 
   def tag = Action.async(BodyParsers.parse.temporaryFile) { request =>
+
+    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+
     ExiftoolService.addXmp(request.body.file, ("dc:Title", "A test title")).map { fo =>
       fo.fold {
         UnprocessableEntity(Json.toJson("Could not process file"))
@@ -52,7 +55,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       Json.toJson(dfs)
     }
 
-    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+    implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
 
     val sourceFile = request.body
 
@@ -81,7 +84,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
-    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
+    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
     val sourceFile = request.body
 
