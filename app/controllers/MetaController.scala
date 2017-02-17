@@ -4,6 +4,7 @@ import java.io.File
 
 import futures.Retry
 import model._
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
@@ -47,6 +48,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       } { tj =>
       Logger.info("Tags JSON: " + tj)
 
+        implicit val df = DateTimeFormat
         implicit val metadataTags = Json.reads[MetadataTags]
         val tags = Json.parse(tj).as[MetadataTags]
 
@@ -55,7 +57,8 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
         val tagsToAdd: Seq[(String, String)] = Seq(
             tags.title.map(t => Seq("dc:Title").map(i => (i, t))),
             tags.description.map(d => Seq("dc:Description").map(i => (i, d))),
-            tags.attribution.map(c => Seq("dc:Contributor").map(i => (i, c)))
+            tags.attribution.map(c => Seq("dc:Contributor").map(i => (i, c))),
+            tags.created.map(d => Seq("dc:Date").map(i => (i, DateTimeFormat.print(d))))
         ).flatten.flatten
 
         Logger.info("Tag to add: " + tags)
@@ -71,7 +74,6 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             })
           }
         }
-
       }
     }
   }
@@ -182,6 +184,6 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
-  case class MetadataTags(title: Option[String], description: Option[String], created: Option[String], attribution: Option[String], email: Option[String], place: Option[String])
+  case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])
 
 }

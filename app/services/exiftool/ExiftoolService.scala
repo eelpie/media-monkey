@@ -113,8 +113,7 @@ class ExiftoolService {
         None
     }
   }
-
-
+  
 }
 
 object ExiftoolService extends ExiftoolService
