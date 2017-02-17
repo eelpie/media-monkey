@@ -88,7 +88,7 @@ class ExiftoolService {
       val outputFile = File.createTempFile("xmp", ".tmp")
       FileUtils.copyFile(f, outputFile)
 
-      val cmd = Seq("exiftool") ++ tagArguments
+      val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
 
       val out = new StringBuilder()
