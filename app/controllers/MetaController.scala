@@ -52,7 +52,12 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
         Logger.info("Tags: " + tags)
 
-        val tagsToAdd = Seq(("dc:Title", "A test title"))
+        val tagsToAdd: Seq[(String, String)] = Seq(
+            tags.title.map(t => Seq("dc:Title").map(i => (i, t))),
+            tags.description.map(d => Seq("dc:Description").map(i => (i, d)))
+        ).flatten.flatten
+
+        Logger.info("Tag to add: " + tags)
 
         ExiftoolService.addXmp(bf.ref.file, tagsToAdd).map { fo =>
           fo.fold {
