@@ -29,19 +29,26 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   val videoService = VideoService
   val faceDetector = FaceDetector
 
-  def tag = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def tag = Action.async(BodyParsers.parse.multipartFormData) { request =>
 
     implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
-    ExiftoolService.addXmp(request.body.file, ("dc:Title", "A test title")).map { fo =>
-      fo.fold {
-        UnprocessableEntity(Json.toJson("Could not process file"))
+    val body = request.body
 
-      }{ f =>
-        Ok.sendFile(f, onClose = () => {
-          Logger.debug("Deleting tmp file after sending file: " + f)
-          f.delete()
-        })
+    body.files.headOption.fold {
+      Future.successful(BadRequest(Json.toJson("No file seen on request")))
+
+    } { bf =>
+      ExiftoolService.addXmp(bf.ref.file, ("dc:Title", "A test title")).map { fo =>
+        fo.fold {
+          UnprocessableEntity(Json.toJson("Could not process file"))
+
+        } { f =>
+          Ok.sendFile(f, onClose = () => {
+            Logger.debug("Deleting tmp file after sending file: " + f)
+            f.delete()
+          })
+        }
       }
     }
   }
@@ -151,5 +158,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       }
     }
   }
+
+  case class MetadataTags(title: Option[String], description: Option[String])
 
 }
