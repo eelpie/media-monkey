@@ -52,7 +52,9 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
         Logger.info("Tags: " + tags)
 
-        ExiftoolService.addXmp(bf.ref.file, ("dc:Title", "A test title")).map { fo =>
+        val tagsToAdd = Seq(("dc:Title", "A test title"))
+
+        ExiftoolService.addXmp(bf.ref.file, tagsToAdd).map { fo =>
           fo.fold {
             UnprocessableEntity(Json.toJson("Could not process file"))
 
@@ -174,6 +176,6 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
-  case class MetadataTags(title: Option[String], description: Option[String], created: Option[String])
+  case class MetadataTags(title: Option[String], description: Option[String], created: Option[String], attribution: Option[String], email: Option[String], place: Option[String])
 
 }
