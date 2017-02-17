@@ -89,6 +89,7 @@ class ExiftoolService {
       FileUtils.copyFile(f, outputFile)
 
       val cmd = Seq("exiftool") ++ tagArguments
+      Logger.info("Exiftool command: " + cmd)
 
       val out = new StringBuilder()
       val logger = ProcessLogger(l => {
