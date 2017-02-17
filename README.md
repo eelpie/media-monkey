@@ -22,6 +22,10 @@ description
 created
 ```
 
+```
+curl -F 'tags={"title": "A title", "description": "A description", created: "2013-01-08T14:58:06.000Z"}' -F "image=@test.jpg" localhost:9001/meta/tag > /tmp/tagged.jpg
+```
+
 ###POST /detect-faces
 
 Attempt to detect faces in the posted image.
