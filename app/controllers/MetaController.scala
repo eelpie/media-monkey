@@ -187,5 +187,6 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
+  case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])
 
 }
