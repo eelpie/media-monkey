@@ -70,10 +70,11 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             UnprocessableEntity(Json.toJson("Could not process file"))
 
           } { f =>
+            val headers = Seq(("Content-Length", f.length().toString))
             Ok.sendFile(f, onClose = () => {
               Logger.debug("Deleting tmp file after sending file: " + f)
               f.delete()
-            })
+            }).withHeaders(headers: _*)
           }
         }
       }
@@ -186,6 +187,5 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
-  case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])
 
 }
