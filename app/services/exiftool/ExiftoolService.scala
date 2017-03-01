@@ -73,19 +73,19 @@ class ExiftoolService {
     }
   }
 
-  def addXmp(f: File, tags: Seq[(String, String)]): Future[Option[File]] = {
+  def addMeta(f: File, group: String, tags: Seq[(String, String)]): Future[Option[File]] = {
     Future {
       val tagFiles = tags.map { f =>
-        val fieldFile = File.createTempFile("xmp", ".field")
+        val fieldFile = File.createTempFile("meta", ".field")
         FileUtils.writeStringToFile(fieldFile, f._2)
         (f._1, fieldFile)
       }
 
       val tagArguments = tagFiles.map { f =>
-        "-XMP-" + f._1 + "<=" + f._2.getAbsolutePath
+        "-" + group + "-" + f._1 + "<=" + f._2.getAbsolutePath
       }
 
-      val outputFile = File.createTempFile("xmp", ".tmp")
+      val outputFile = File.createTempFile("meta", ".tmp")
       FileUtils.copyFile(f, outputFile)
 
       val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.getAbsolutePath

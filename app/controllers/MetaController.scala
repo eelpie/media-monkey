@@ -65,7 +65,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
         Logger.info("Tag to add: " + tags)
 
-        ExiftoolService.addXmp(bf.ref.file, tagsToAdd).map { fo =>
+        ExiftoolService.addMeta(bf.ref.file, "XMP", tagsToAdd).map { fo =>
           fo.fold {
             UnprocessableEntity(Json.toJson("Could not process file"))
 
