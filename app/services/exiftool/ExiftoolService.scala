@@ -86,6 +86,7 @@ class ExiftoolService {
 
       val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
+      println("Exiftool command: " + cmd)
 
       val out = new StringBuilder()
       val logger = ProcessLogger(l => {
