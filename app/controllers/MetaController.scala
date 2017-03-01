@@ -55,13 +55,17 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
         Logger.info("Tags: " + tags)
 
         val tagsToAdd = Seq(
-            tags.title.map(t => Seq("dc:Title").map(i => ("XMP", i, t))),
-            tags.description.map(d => Seq("dc:Description").map(i => ("XMP", i, d))),
-            tags.attribution.map(c => Seq("dc:Contributor").map(i => ("XMP", i, c))),
-            tags.created.map(d => Seq("dc:Date").map(i => ("XMP", i, DateTimeFormat.print(d)))),
-            tags.email.map(e => Seq("iptcCore:CreatorWorkEmail").map(i => ("XMP", i, e))),
-            tags.place.map(p => Seq("iptcExt:LocationShown").map(i => ("XMP", i, p)))
-        ).flatten.flatten
+            tags.title.map(t => ("XMP", "dc:Title", t)),
+            tags.title.map(t => ("IPTC", "Headline", t)),
+            tags.description.map(d => ("XMP", "dc:Description", d)),
+            tags.attribution.map(c => ("XMP", "dc:Contributor", c)),
+            tags.attribution.map(c => ("IPTC", "By-line", c)),
+            tags.created.map(d => ("XMP", "dc:Date", DateTimeFormat.print(d))),
+            tags.email.map(e => ("XMP", "iptcCore:CreatorWorkEmail", e)),
+            tags.email.map(e => ("IPTC", "Contact", e)),
+            tags.place.map(p => ("XMP", "iptcExt:LocationShown", p)),
+            tags.place.map(p => ("ITPC", "ContentLocationName", p))
+        ).flatten
 
         Logger.info("Tag to add: " + tags)
 
