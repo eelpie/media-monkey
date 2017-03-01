@@ -54,18 +54,18 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
         Logger.info("Tags: " + tags)
 
-        val tagsToAdd: Seq[(String, String)] = Seq(
-            tags.title.map(t => Seq("dc:Title").map(i => (i, t))),
-            tags.description.map(d => Seq("dc:Description").map(i => (i, d))),
-            tags.attribution.map(c => Seq("dc:Contributor").map(i => (i, c))),
-            tags.created.map(d => Seq("dc:Date").map(i => (i, DateTimeFormat.print(d)))),
-            tags.email.map(e => Seq("iptcCore:CreatorWorkEmail").map(i => (i, e))),
-            tags.place.map(p => Seq("iptcExt:LocationShown").map(i => (i, p)))
+        val tagsToAdd = Seq(
+            tags.title.map(t => Seq("dc:Title").map(i => ("XMP", i, t))),
+            tags.description.map(d => Seq("dc:Description").map(i => ("XMP", i, d))),
+            tags.attribution.map(c => Seq("dc:Contributor").map(i => ("XMP", i, c))),
+            tags.created.map(d => Seq("dc:Date").map(i => ("XMP", i, DateTimeFormat.print(d)))),
+            tags.email.map(e => Seq("iptcCore:CreatorWorkEmail").map(i => ("XMP", i, e))),
+            tags.place.map(p => Seq("iptcExt:LocationShown").map(i => ("XMP", i, p)))
         ).flatten.flatten
 
         Logger.info("Tag to add: " + tags)
 
-        ExiftoolService.addMeta(bf.ref.file, "XMP", tagsToAdd).map { fo =>
+        ExiftoolService.addMeta(bf.ref.file, tagsToAdd).map { fo =>
           fo.fold {
             UnprocessableEntity(Json.toJson("Could not process file"))
 

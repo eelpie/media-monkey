@@ -73,16 +73,12 @@ class ExiftoolService {
     }
   }
 
-  def addMeta(f: File, group: String, tags: Seq[(String, String)]): Future[Option[File]] = {
+  def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
     Future {
-      val tagFiles = tags.map { f =>
+      val tagArguments = tags.map { f =>
         val fieldFile = File.createTempFile("meta", ".field")
         FileUtils.writeStringToFile(fieldFile, f._2)
-        (f._1, fieldFile)
-      }
-
-      val tagArguments = tagFiles.map { f =>
-        "-" + group + "-" + f._1 + "<=" + f._2.getAbsolutePath
+        "-" + f._1 + "-" + f._2 + "<=" + fieldFile.getAbsolutePath
       }
 
       val outputFile = File.createTempFile("meta", ".tmp")
