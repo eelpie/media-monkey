@@ -78,7 +78,7 @@ class ExiftoolService {
       val tagArguments = tags.map { f =>
         val fieldFile = File.createTempFile("meta", ".field")
         FileUtils.writeStringToFile(fieldFile, f._3)
-        "-" + f._1 + "-" + f._2 + "<=" + fieldFile.getAbsolutePath
+        "-" + f._1 + f._2 + "<=" + fieldFile.getAbsolutePath
       }
 
       val outputFile = File.createTempFile("meta", ".tmp")
