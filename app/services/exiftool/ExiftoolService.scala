@@ -77,7 +77,7 @@ class ExiftoolService {
     Future {
       val tagArguments = tags.map { f =>
         val fieldFile = File.createTempFile("meta", ".field")
-        FileUtils.writeStringToFile(fieldFile, f._2)
+        FileUtils.writeStringToFile(fieldFile, f._3)
         "-" + f._1 + "-" + f._2 + "<=" + fieldFile.getAbsolutePath
       }
 
