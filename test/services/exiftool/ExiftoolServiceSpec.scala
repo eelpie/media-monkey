@@ -23,8 +23,8 @@ class ExiftoolServiceSpec extends Specification {
     val imageFile = new File("test/resources/IMG_0004.MOV")
 
     val tagsToAdd = Seq(
-      ("XMP", "dc:Title", "A test title"),
-      ("XMP", "dc:Description", "A test description")
+      ("XMP-dc", "Title", "A test title"),
+      ("XMP-dc", "Description", "A test description")
     )
 
     val withMetadata: File = Await.result(ExiftoolService.addMeta(imageFile, tagsToAdd), tenSeconds).get
