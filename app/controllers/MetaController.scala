@@ -46,18 +46,15 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
         Future.successful(BadRequest(Json.toJson("No tags seen on request")))
 
       } { tj =>
-      Logger.info("Tags JSON: " + tj)
-
         implicit val df = DateTimeFormat
         implicit val metadataTags = Json.reads[MetadataTags]
         val tags = Json.parse(tj).as[MetadataTags]
-
-        Logger.info("Tags: " + tags)
 
         val tagsToAdd = Seq(
             tags.title.map(t => ("XMP-dc", "Title", t)),
             tags.title.map(t => ("IPTC", "Headline", t)),
             tags.description.map(d => ("XMP-dc", "Description", d)),
+            tags.description.map(d => ("IPTC", "Caption", d)),
             tags.attribution.map(c => ("XMP-dc", "Contributor", c)),
             tags.attribution.map(c => ("IPTC", "By-line", c)),
             tags.created.map(d => ("XMP-dc", "Date", DateTimeFormat.print(d))),
