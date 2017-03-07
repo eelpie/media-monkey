@@ -54,7 +54,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             tags.title.map(t => ("XMP-dc", "Title", t)),
             tags.title.map(t => ("IPTC", "Headline", t)),
             tags.description.map(d => ("XMP-dc", "Description", d)),
-            tags.description.map(d => ("IPTC", "Caption", d)),
+            tags.description.map(d => ("IPTC", "Caption-Abstract", d)),
             tags.attribution.map(c => ("XMP-dc", "Contributor", c)),
             tags.attribution.map(c => ("IPTC", "By-line", c)),
             tags.created.map(d => ("XMP-dc", "Date", DateTimeFormat.print(d))),
