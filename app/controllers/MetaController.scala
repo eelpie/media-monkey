@@ -110,7 +110,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
           post(asJson(dfs)).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }
-      }
+      }(executionContext)
 
       Future.successful(Accepted(JsonAccepted))
     }
