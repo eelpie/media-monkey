@@ -5,6 +5,7 @@ import java.io.File
 import futures.Retry
 import play.api.Logger
 import play.api.Play.current
+import play.api.libs.concurrent.Akka
 import play.api.libs.json._
 import play.api.libs.ws.WS
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
@@ -13,7 +14,7 @@ import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.video.VideoService
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object Application extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
 
@@ -39,6 +40,8 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
+      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+
       val eventualResult = imageService.cropImage(sourceFile.file, width, height, x, y, of.fileExtension).flatMap { ro =>
         sourceFile.clean()
 
@@ -62,6 +65,8 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
+
+      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
 
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill.getOrElse(false), gravity).flatMap { ro =>
         sourceFile.clean()
