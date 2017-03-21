@@ -91,10 +91,9 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       Json.toJson(dfs)
     }
 
-    implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
-
     val sourceFile = request.body
 
+    implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
     val eventualDetectedFaces = faceDetector.detectFaces(sourceFile.file)
 
     callback.fold {

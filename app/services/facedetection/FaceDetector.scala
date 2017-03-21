@@ -7,6 +7,7 @@ import org.joda.time.{DateTime, Duration}
 import org.openimaj.image.ImageUtilities
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector
 import play.api.Logger
+import play.api.libs.concurrent.Akka
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
@@ -14,7 +15,10 @@ import scala.concurrent.Future
 class FaceDetector {
 
   def detectFaces(source: File): Future[Seq[model.DetectedFace]] = {
-      Future.successful{
+
+    implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
+
+    Future.successful{
         Logger.info("Detecting faces in file: " + source.getAbsolutePath)
         val start = DateTime.now()
 
