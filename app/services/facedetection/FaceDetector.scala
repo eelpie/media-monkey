@@ -1,6 +1,6 @@
 package services.facedetection
 
-import java.io.{FileInputStream, File}
+import java.io.File
 
 import model.Point
 import org.joda.time.{DateTime, Duration}
