@@ -3,6 +3,7 @@ package controllers
 import java.io.File
 
 import futures.Retry
+import org.joda.time.{DateTime, Duration}
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
@@ -195,12 +196,14 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
           Logger.warn("Failed to process file; not calling back")
 
         } { r =>
+          val startTime = DateTime.now
           Logger.info("Calling back to " + c + " using execution context: " + ec)
           val of: OutputFormat = r._3
           WS.url(c).withHeaders(headersFor(of, r._2): _*).
             withRequestTimeout(ThirtySeconds.toMillis).
             post(r._1).map { rp =>
-            Logger.info("Response from callback url " + callback + ": " + rp.status)
+            val duration = new Duration(startTime, DateTime.now)
+            Logger.info("Response from callback url " + callback + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
           }
