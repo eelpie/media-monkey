@@ -5,6 +5,7 @@ import java.io.{File, FileInputStream}
 import com.ning.http.client.{AsyncHttpClient, Response}
 import org.apache.tika.mime.MimeTypes
 import play.api.Play.current
+import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.libs.ws.WS
 import play.api.{Logger, Play}
@@ -18,6 +19,9 @@ trait TikaService {
   val tikaUrl: String
 
   def meta(f: File): Future[Option[Map[String, String]]] = {
+
+    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+
     Future {
       Logger.info("Posting submitted file to Tika for typing")
       val asyncHttpClient: AsyncHttpClient = WS.client.underlying
