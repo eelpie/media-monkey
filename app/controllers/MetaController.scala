@@ -113,7 +113,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
     val sourceFile = request.body
 
-    retry(3)(tika.meta(sourceFile.file)).flatMap { tmdo =>
+    tika.meta(sourceFile.file).flatMap { tmdo =>
 
       val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
       val eventualContentType = tikaContentType.fold {
