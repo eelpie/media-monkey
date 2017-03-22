@@ -7,7 +7,6 @@ import org.joda.time.{DateTime, Duration}
 import org.openimaj.image.ImageUtilities
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector
 import play.api.Logger
-import play.api.libs.concurrent.Akka
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 

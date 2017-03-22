@@ -32,6 +32,10 @@ Attempt to detect faces in the posted image.
 This information might be used to make an informed decision about how to crop an image.
 Backed by openimaj.
 
+```
+callback
+```
+
 ###POST /crop
 
 width, height, x, y

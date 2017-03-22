@@ -82,7 +82,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
   }
 
-  def defectFaces(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def defectFaces(callback: String) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     def asJson(dfs: Seq[DetectedFace]): JsValue = {
       implicit val pw = Json.writes[Point]
@@ -94,27 +94,17 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     val sourceFile = request.body
 
     implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
-    val eventualDetectedFaces = faceDetector.detectFaces(sourceFile.file)
 
-    callback.fold {
-      eventualDetectedFaces.map { dfs =>
-        sourceFile.clean()
-        Ok(asJson(dfs))
+    faceDetector.detectFaces(sourceFile.file).map { dfs =>
+      sourceFile.clean()
+      Logger.info("Calling back to " + callback)
+      WS.url(callback).withRequestTimeout(ThirtySeconds.toMillis).
+        post(asJson(dfs)).map { rp =>
+        Logger.info("Response from callback url " + callback + ": " + rp.status)
       }
-
-    }{ c =>
-      eventualDetectedFaces.map { dfs =>
-        sourceFile.clean()
-        Logger.info("Calling back to " + c)
-        WS.url(c).withRequestTimeout(ThirtySeconds.toMillis).
-          post(asJson(dfs)).map { rp =>
-            Logger.info("Response from callback url " + callback + ": " + rp.status)
-          }
-      }(executionContext)
-
-      Future.successful(Accepted(JsonAccepted))
     }
 
+    Future.successful(Accepted(JsonAccepted))
   }
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
