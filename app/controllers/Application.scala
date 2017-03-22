@@ -206,7 +206,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
             Logger.info("Response from callback url " + callback + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
-          }
+          }(ec)
         }
       }(ec)
       Future.successful(Accepted(JsonAccepted))
