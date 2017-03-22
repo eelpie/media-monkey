@@ -4,7 +4,7 @@ import java.io.File
 
 import futures.Retry
 import model._
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Duration}
 import play.api.Logger
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
@@ -107,7 +107,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     Future.successful(Accepted(JsonAccepted))
   }
 
-  def meta() = Action.async(BodyParsers.parse.temporaryFile) { request =>
+  def meta(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
     implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
@@ -169,19 +169,33 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     }
 
     metadata.map { mdo =>
-      mdo.fold {
-        UnsupportedMediaType(Json.toJson("Unsupported media type"))
 
-      } { md =>
-        implicit val sw = Json.writes[Summary]
-        implicit val fsaw = Json.writes[FormatSpecificAttributes]
-        implicit val tw = Json.writes[Track]
-        implicit val mdw = Json.writes[Metadata]
+      implicit val sw = Json.writes[Summary]
+      implicit val fsaw = Json.writes[FormatSpecificAttributes]
+      implicit val tw = Json.writes[Track]
+      implicit val mdw = Json.writes[Metadata]
 
-        Ok(Json.toJson(mdo))
+      callback.fold {
+        mdo.fold {
+          UnsupportedMediaType(Json.toJson("Unsupported media type"))
+
+        } { md =>
+          Ok(Json.toJson(mdo))
+        }
+      } { c =>
+
+        mdo.map { md =>
+          WS.url(c).withHeaders().
+            withRequestTimeout(ThirtySeconds.toMillis).
+            post(Json.stringify(Json.toJson(md))).map { rp =>
+            Logger.info("Response from callback url " + callback + ": " + rp.status)
+          }
+        }
+
+        Accepted(Json.toJson("ok"))
       }
-    }
 
+    }
   }
 
   case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])

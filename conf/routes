@@ -1,4 +1,4 @@
-POST        /meta		                controllers.MetaController.meta
+POST        /meta		                controllers.MetaController.meta(callback: Option[String])
 POST        /meta/tag		            controllers.MetaController.tag
 POST        /detect-faces               controllers.MetaController.defectFaces(callback: String)
 
