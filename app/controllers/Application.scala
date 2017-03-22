@@ -53,7 +53,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, None)
+      handleResult(eventualResult, None)(imageProcessingExecutionContext)
     }
   }
 
@@ -87,6 +87,8 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     val width = w.getOrElse(320)
     val height = h.getOrElse(180)
 
+    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
       val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
@@ -99,12 +101,15 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, callback)
+      handleResult(eventualResult, callback)(videoProcessingExecutionContext)
     }
   }
 
   def videoAudio(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
+
+    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+
     val eventualResult = videoService.audio(sourceFile.file).map { ro =>
       sourceFile.clean()
 
@@ -113,13 +118,14 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         Some(r, noDimensions, AudioOutputFormat)
       }.getOrElse(None)
     }
-    handleResult(eventualResult, callback)
+    handleResult(eventualResult, callback)(videoProcessingExecutionContext)
   }
 
 
   def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
-
     val sourceFile = request.body
+
+    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
@@ -154,7 +160,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }
       }
 
-      handleResult(eventualResult, callback)
+      handleResult(eventualResult, callback)(videoProcessingExecutionContext)
     }
   }
 
