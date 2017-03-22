@@ -185,7 +185,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       } { c =>
 
         mdo.map { md =>
-          WS.url(c).withHeaders().
+          WS.url(c).withHeaders((CONTENT_TYPE, "application/json")).
             withRequestTimeout(ThirtySeconds.toMillis).
             post(Json.stringify(Json.toJson(md))).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
