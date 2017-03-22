@@ -10,7 +10,7 @@ import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WS
-import play.api.mvc.{Action, BodyParsers, Controller}
+import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.exiftool.ExiftoolService
 import services.facedetection.FaceDetector
 import services.geo.ExifLocationExtractor
@@ -107,41 +107,27 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     Future.successful(Accepted(JsonAccepted))
   }
 
-  def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
-    
+  def meta() = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
     implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
-    Future.successful(Logger.info("Which thread2?")).map { _ =>
-      Logger.info("Checked")
-    }
+    val metadata = tika.meta(sourceFile.file).flatMap { tmdo =>
 
-    tika.meta(sourceFile.file).flatMap { tmdo =>
       val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
-
       val eventualContentType = tikaContentType.fold {
         exiftool.contentType(sourceFile.file)
       }(ct => Future.successful(Some(ct)))
 
       eventualContentType.flatMap { contentType =>
-        contentType.fold {
-          Future.successful(UnsupportedMediaType(Json.toJson("Unsupported media type")))
 
-        } { ct =>
+        contentType.map { ct =>
           val summary = summarise(ct, sourceFile.file)
-
-          implicit val sw = Json.writes[Summary]
-          implicit val fsaw = Json.writes[FormatSpecificAttributes]
-          implicit val tw = Json.writes[Track]
-          implicit val mdw = Json.writes[Metadata]
 
           summary.`type`.fold {
             sourceFile.clean()
-
             val location = tmdo.flatMap(md => extractLocationFrom(md))
-
-            Future.successful(UnsupportedMediaType(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location))))
+            Future.successful(Some(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location)))
 
           } { t =>
 
@@ -168,17 +154,34 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
                 }
               }
 
-              val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map()))   // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
-
-              val location = tmdo.flatMap(md => extractLocationFrom(combinedMetadata))
-
-              Ok(Json.toJson(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location)))
+              val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map())) // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
+            val location = tmdo.flatMap(md => extractLocationFrom(combinedMetadata))
+              Some(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location))
             }
 
           }
+
+        }.getOrElse {
+          Logger.info("Unsupported media type")
+          Future.successful(None)
         }
       }
     }
+
+    metadata.map { mdo =>
+      mdo.fold {
+        UnsupportedMediaType(Json.toJson("Unsupported media type"))
+
+      } { md =>
+        implicit val sw = Json.writes[Summary]
+        implicit val fsaw = Json.writes[FormatSpecificAttributes]
+        implicit val tw = Json.writes[Track]
+        implicit val mdw = Json.writes[Metadata]
+
+        Ok(Json.toJson(mdo))
+      }
+    }
+
   }
 
   case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])
