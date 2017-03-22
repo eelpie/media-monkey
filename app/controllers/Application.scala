@@ -168,7 +168,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     })
   }
 
-  private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String]): Future[Result] = {
+  private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String])(implicit ec: ExecutionContext): Future[Result] = {
 
     def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
       val dimensionHeaders = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
@@ -195,7 +195,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
           Logger.warn("Failed to process file; not calling back")
 
         } { r =>
-          Logger.info("Calling back to " + c)
+          Logger.info("Calling back to " + c + " using execution context: " + ec)
           val of: OutputFormat = r._3
           WS.url(c).withHeaders(headersFor(of, r._2): _*).
             withRequestTimeout(ThirtySeconds.toMillis).
