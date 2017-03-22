@@ -108,14 +108,18 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   }
 
   def meta = Action.async(BodyParsers.parse.temporaryFile) { request =>
+    
+    val sourceFile = request.body
 
     implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
-    val sourceFile = request.body
+    Future.successful(Logger.info("Which thread2?")).map { _ =>
+      Logger.info("Checked")
+    }
 
     tika.meta(sourceFile.file).flatMap { tmdo =>
-
       val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
+
       val eventualContentType = tikaContentType.fold {
         exiftool.contentType(sourceFile.file)
       }(ct => Future.successful(Some(ct)))
