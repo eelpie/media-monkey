@@ -79,7 +79,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, callback)
+      handleResult(eventualResult, callback)(imageProcessingExecutionContext)
     }
   }
 
@@ -208,7 +208,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
             r._1.delete()
           }
         }
-      }
+      }(ec)
       Future.successful(Accepted(JsonAccepted))
     }
   }
