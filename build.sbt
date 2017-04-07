@@ -8,6 +8,7 @@ scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
+resolvers += "billylieurance-net" at "http://www.billylieurance.net/maven2"
 
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
