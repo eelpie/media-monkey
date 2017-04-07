@@ -18,7 +18,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale image to fit box along longest axis" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=300&rotate=0").post(new File("test/resources/4.webp"))
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/4.webp"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
