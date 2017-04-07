@@ -39,7 +39,7 @@ packageDescription := "Media handling service"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
 
-debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo", "openjdk-8-jdk", "libimage-exiftool-perl")
+debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo", "openjdk-8-jdk", "libimage-exiftool-perl", "webp")
 
 import com.typesafe.sbt.packager.archetypes.ServerLoader
 
@@ -62,5 +62,5 @@ dockerCommands ++= Seq(
   ExecCmd("RUN", "apt-get", "update"),
   ExecCmd("RUN", "apt-get", "upgrade", "-y"),
   ExecCmd("RUN", "apt-get", "install", "-t", "jessie-backports", "-y", "openjdk-8-jre"),
-  ExecCmd("RUN", "apt-get", "install", "-y", "imagemagick", "libav-tools", "mediainfo", "libimage-exiftool-perl")
+  ExecCmd("RUN", "apt-get", "install", "-y", "imagemagick", "libav-tools", "mediainfo", "libimage-exiftool-perl", "webp")
 )
