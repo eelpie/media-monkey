@@ -8,7 +8,6 @@ scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
-resolvers += "commons-imaging" at "https://repository.apache.org/content/repositories/snapshots"
 
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
@@ -24,7 +23,6 @@ libraryDependencies += "org.openimaj" % "faces" % "1.3.5"
 
 libraryDependencies += "us.fatehi" % "pointlocation6709" % "4.1"
 
-libraryDependencies += "org.apache.commons" % "commons-imaging" % "1.0-SNAPSHOT"
 libraryDependencies += "commons-io" % "commons-io" % "2.5"
 
 libraryDependencies += specs2 % Test
