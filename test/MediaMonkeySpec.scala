@@ -18,7 +18,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale image to fit box along longest axis" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=300&rotate=0").post(new File("test/resources/4.webp"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -26,7 +26,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       val jsonMeta = metadataForResponse(response)
       (jsonMeta \ "summary" \ "contentType").toOption.get.as[String] must equalTo("image/jpeg")
       (jsonMeta \ "formatSpecificAttributes" \ "width").toOption.get.as[Int] must equalTo(800)
-      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(533)
+      (jsonMeta \ "formatSpecificAttributes" \ "height").toOption.get.as[Int] must equalTo(280)
     }
   }
 

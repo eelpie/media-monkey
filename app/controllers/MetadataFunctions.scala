@@ -19,7 +19,8 @@ trait MetadataFunctions {
     "image/png",
     "image/gif",
     "image/x-ms-bmp",
-    "image/tiff"
+    "image/tiff",
+    "image/webp"
   )
 
   private val RecognisedVideoTypes = Seq(
