@@ -61,7 +61,7 @@ class ImageService {
     val op: IMOperation = new IMOperation()
     op.addImage()
     op.autoOrient()
-    op.addRawArgs("-rsize '800'>")
+    op.resize(null, null, "800>")
     op.addImage()
 
     Future {
