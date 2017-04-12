@@ -56,6 +56,36 @@ class ImageService {
 
   }
 
+  def workingSize(input: File)(implicit ec: ExecutionContext): Future[Option[File]] = {
+
+    val op: IMOperation = new IMOperation()
+    op.addImage()
+    op.autoOrient()
+    op.addRawArgs("-rsize '800'>")
+
+    Future {
+      val outputFile = File.createTempFile("workingimage", "." + "jpg")
+      Logger.debug("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile)
+      try {
+        val start = DateTime.now
+        val cmd: ConvertCmd = new ConvertCmd()
+        cmd.run(op, input.getAbsolutePath, outputFile.getAbsolutePath())
+
+        val duration = DateTime.now.getMillis - start.getMillis
+        Logger.info("Completed ImageMagik working image operation output to: " + outputFile.getAbsolutePath() + " in " + duration + "ms")
+        Some(outputFile)
+
+      } catch {
+        case e: Exception => {
+          Logger.error("Exception while executing IM operation", e)
+          outputFile.delete()
+          None
+        }
+
+      }
+    }
+  }
+
   def resizeImage(input: File, width: Option[Int], height: Option[Int], rotate: Double, outputFormat: String, fill: Boolean, gravity: Option[String]): Future[Option[File]] = {
 
     def imResizeOperation(width: Option[Int], height: Option[Int], rotate: Double, fill: Boolean): IMOperation = {
