@@ -14,6 +14,7 @@ class FaceDetectorSpec extends Specification {
 
   val port: Port = 3334
 
+  /*
   "can detect faces" in {
     running(TestServer(port)) {
       val imageWithSingleFace = new File("test/resources/5282722938_e0e2515624_o.jpg")
@@ -21,5 +22,6 @@ class FaceDetectorSpec extends Specification {
       detectedFaces.size must equalTo(1)
     }
   }
+  */
 
 }
