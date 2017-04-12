@@ -96,7 +96,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
 
     Future.successful {
-      faceDetector.detectFaces(sourceFile.file).map { dfs =>
+      faceDetector.detectFaces(sourceFile.file)(executionContext).map { dfs =>
         sourceFile.clean()
         Logger.info("Calling back to " + callback)
         WS.url(callback).withRequestTimeout(ThirtySeconds.toMillis).
