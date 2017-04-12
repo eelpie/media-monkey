@@ -14,14 +14,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class FaceDetector {
 
   def detectFaces(source: File)(implicit ec: ExecutionContext): Future[Seq[model.DetectedFace]] = {
-
-    Future.successful{
+    Future {
         Logger.info("Detecting faces in file: " + source.getAbsolutePath)
         val start = DateTime.now()
 
-        val detector = new HaarCascadeDetector()
+        val detectFaces1 = new HaarCascadeDetector().detectFaces(ImageUtilities.readF(source))
 
-        val detected = detector.detectFaces(ImageUtilities.readF(source)).map { r =>
+        val detected = detectFaces1.map { r =>
           val b = r.getBounds()
           model.DetectedFace(bounds = model.Bounds(
             Point(b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), Point(b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
@@ -30,7 +29,7 @@ class FaceDetector {
 
         Logger.info("Detected " + detected.size + " in " + new Duration(start, DateTime.now))
         detected
-      }
+    }
   }
 
 }
