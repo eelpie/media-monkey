@@ -8,6 +8,7 @@ import play.api.test.{Port, TestServer}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.global
 
 class FaceDetectorSpec extends Specification {
 
