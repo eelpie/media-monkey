@@ -62,6 +62,7 @@ class ImageService {
     op.addImage()
     op.autoOrient()
     op.addRawArgs("-rsize '800'>")
+    op.addImage()
 
     Future {
       val outputFile = File.createTempFile("workingimage", "." + "jpg")

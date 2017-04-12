@@ -18,9 +18,7 @@ class FaceDetector {
         Logger.info("Detecting faces in file: " + source.getAbsolutePath)
         val start = DateTime.now()
 
-        val detectFaces1 = new HaarCascadeDetector().detectFaces(ImageUtilities.readF(source))
-
-        val detected = detectFaces1.map { r =>
+        val detected = new HaarCascadeDetector().detectFaces(ImageUtilities.readF(source)).map { r =>
           val b = r.getBounds()
           model.DetectedFace(bounds = model.Bounds(
             Point(b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), Point(b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
