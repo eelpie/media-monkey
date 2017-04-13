@@ -36,6 +36,8 @@ Backed by openimaj.
 callback
 ```
 
+Bounds are reported as percentages of the images width and height.
+
 ###POST /crop
 
 width, height, x, y

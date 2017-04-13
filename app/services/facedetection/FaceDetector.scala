@@ -15,15 +15,24 @@ class FaceDetector {
 
   def detectFaces(source: File)(implicit ec: ExecutionContext): Future[Seq[model.DetectedFace]] = {
     Future {
-        Logger.info("Detecting faces in file: " + source.getAbsolutePath)
-        val start = DateTime.now()
 
-        val detected = new HaarCascadeDetector().detectFaces(ImageUtilities.readF(source)).map { r =>
+      def asPercentage(i: Float, of: Int) = {
+        val percentage = (i / of) * 100
+        BigDecimal(percentage).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
+      }
+
+      Logger.info("Detecting faces in file: " + source.getAbsolutePath)
+      val start = DateTime.now()
+
+      val fImage = ImageUtilities.readF(source)
+      val detected = new HaarCascadeDetector().detectFaces(fImage).map { r =>
           val b = r.getBounds()
-          model.DetectedFace(bounds = model.Bounds(
-            Point(b.getTopLeft.getX.toInt, b.getTopLeft.getY.toInt), Point(b.getBottomRight.getX.toInt, b.getBottomRight.getY.toInt)),
-            confidence = r.getConfidence)
-          }
+
+          val topLeftBound = Point(asPercentage(b.getTopLeft.getX, fImage.width), asPercentage(b.getTopLeft.getY, fImage.height))
+          val bottomRightBound = Point(asPercentage(b.getBottomRight.getX.toInt, fImage.width), asPercentage(b.getBottomRight.getY.toInt, fImage.height))
+
+          model.DetectedFace(bounds = model.Bounds(topLeftBound, bottomRightBound), confidence = r.getConfidence)
+        }
 
         Logger.info("Detected " + detected.size + " in " + new Duration(start, DateTime.now))
         detected
