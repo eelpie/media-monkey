@@ -95,20 +95,16 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
     implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
 
-    imageService.workingSize(sourceFile.file).flatMap { wo =>
+    imageService.workingSize(sourceFile.file).map { wo =>
       wo.map { w =>
         faceDetector.detectFaces(w).map { dfs =>
-          sourceFile.clean()
           Logger.info("Calling back to " + callback)
           WS.url(callback).withRequestTimeout(ThirtySeconds.toMillis).
             post(asJson(dfs)).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }
+          w.delete()
         }
-
-      }.getOrElse{
-        sourceFile.clean()
-        Future.successful(UnprocessableEntity(Json.toJson("Could not process image")))
       }
     }
 
