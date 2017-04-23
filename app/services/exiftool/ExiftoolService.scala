@@ -1,14 +1,15 @@
 package services.exiftool
 
 import java.io.File
+import java.nio.charset.Charset
 
 import org.apache.commons.io.FileUtils
 import play.api.Logger
 import play.api.libs.json.Json
 
+import scala.concurrent.ExecutionContext.Implicits.{global => ec}
 import scala.concurrent.Future
 import scala.sys.process.{ProcessLogger, _}
-import scala.concurrent.ExecutionContext.Implicits.{global => ec}
 
 class ExiftoolService {
 
@@ -74,10 +75,13 @@ class ExiftoolService {
   }
 
   def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
+
+    val UTF8 = Charset.forName("UTF-8")
+
     Future {
       val tagArguments = tags.map { f =>
         val fieldFile = File.createTempFile("meta", ".field")
-        FileUtils.writeStringToFile(fieldFile, f._3)
+        FileUtils.writeStringToFile(fieldFile, f._3, UTF8)
         "-" + f._1 + ":" + f._2 + "<=" + fieldFile.getAbsolutePath
       }
 
