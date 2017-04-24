@@ -145,9 +145,13 @@ class ImageService {
 
       } catch {
         case e: Exception => {
-          Logger.error("Exception while executing IM operation", e)
-          outputFile.delete()
-          None
+          Logger.error("Exception while executing IM operation; may be recoverable", e)
+          if (outputFile.canRead && outputFile.length() > 0) {
+            Some(outputFile)
+          } else {
+            outputFile.delete()
+            None
+          }
         }
       }
     }
