@@ -96,7 +96,7 @@ class ImageService {
 
       if (fill) {
         val op: IMOperation = new IMOperation()
-        op.addImage().addRawArgs("[0]")
+        op.addImage("[0]")
         op.autoOrient()
         op.rotate(rotate)
 
@@ -113,7 +113,7 @@ class ImageService {
 
       } else {
         val op: IMOperation = new IMOperation()
-        op.addImage().addRawArgs("[0]")
+        op.addImage("[0]")
         op.autoOrient()
         op.rotate(rotate)
 
