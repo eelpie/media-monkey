@@ -15,7 +15,7 @@ class ImageService {
   def info(input: File): Future[(Int, Int)] = {
     implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
     Future {
-      val imageInfo: Info = new Info(input.getAbsolutePath, true)
+      val imageInfo = new Info(input.getAbsolutePath, true)
       (imageInfo.getImageWidth, imageInfo.getImageHeight)
     }
   }
@@ -23,8 +23,8 @@ class ImageService {
   def cropImage(input: File, width: Int, height: Int, x: Int, y: Int, outputFormat: String): Future[Option[File]] = {
 
     def imCropOperation(width: Int, height: Int, x: Int, y: Int): IMOperation = {
-        val op: IMOperation = new IMOperation()
-        op.addImage()
+        val op = new IMOperation()
+        addInputImageUsingFirstLayer(op)
         op.crop(width, height, x, y)
         op.strip()
         op.addImage()
@@ -58,8 +58,8 @@ class ImageService {
 
   def workingSize(input: File)(implicit ec: ExecutionContext): Future[Option[File]] = {
 
-    val op: IMOperation = new IMOperation()
-    op.addImage()
+    val op = new IMOperation()
+    addInputImageUsingFirstLayer(op)
     op.autoOrient()
     op.resize(null, null, "800>")
     op.addImage()
@@ -95,8 +95,8 @@ class ImageService {
       val g = gravity.flatMap(g => PermittedGravities.find(i => i == g)).getOrElse("Center")
 
       if (fill) {
-        val op: IMOperation = new IMOperation()
-        op.addImage("[0]")
+        val op = new IMOperation()
+        addInputImageUsingFirstLayer(op)
         op.autoOrient()
         op.rotate(rotate)
 
@@ -112,8 +112,8 @@ class ImageService {
         op
 
       } else {
-        val op: IMOperation = new IMOperation()
-        op.addImage("[0]")
+        val op = new IMOperation()
+        addInputImageUsingFirstLayer(op)
         op.autoOrient()
         op.rotate(rotate)
 
@@ -136,7 +136,7 @@ class ImageService {
       Logger.debug("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile)
       try {
         val start = DateTime.now
-        val cmd: ConvertCmd = new ConvertCmd()
+        val cmd = new ConvertCmd()
         cmd.run(imResizeOperation(width, height, rotate, fill), input.getAbsolutePath, outputFile.getAbsolutePath())
 
         val duration = DateTime.now.getMillis - start.getMillis
@@ -156,6 +156,10 @@ class ImageService {
       }
     }
 
+  }
+
+  private def addInputImageUsingFirstLayer(op: IMOperation): Unit = {
+    op.addImage("[0]")
   }
 
 }
