@@ -4,6 +4,7 @@ import java.io.File
 
 import futures.Retry
 import model._
+import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime, Duration}
 import play.api.Logger
 import play.api.Play.current
@@ -93,9 +94,12 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
     val sourceFile = request.body
 
+    val buffer = File.createTempFile("buffer", "." + "jpg")
+    FileUtils.copyFile(sourceFile.file, buffer)
+
     implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
 
-    imageService.workingSize(sourceFile.file).map { wo =>
+    imageService.workingSize(buffer).map { wo =>
       wo.map { w =>
         faceDetector.detectFaces(w).map { dfs =>
           Logger.info("Calling back to " + callback)
