@@ -176,7 +176,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
       response.status must equalTo(OK)
       response.header("X-Width").get.toInt must equalTo(284)
       response.header("X-Height").get.toInt must equalTo(160)
-      (metadataForResponse(response) \ "summary" \ "contentType").toOption.get.as[String] must equalTo("video/theora")
+      (metadataForResponse(response) \ "summary" \ "contentType").toOption.get.as[String] must equalTo("video/x-ogg")
     }
   }
 
