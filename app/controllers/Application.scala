@@ -205,18 +205,26 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
           val startTime = DateTime.now
           Logger.info("Calling back to " + c + " using execution context: " + ec)
           val of: OutputFormat = r._3
-          WS.url(c).withHeaders(headersFor(of, r._2): _*).
-            withRequestTimeout(ThirtySeconds.toMillis).
-            post(r._1).map { rp =>
+
+          val callbackPost = WS.url(c).withHeaders(headersFor(of, r._2): _*).withRequestTimeout(ThirtySeconds.toMillis).post(r._1)
+
+          callbackPost.map { rp =>
             val duration = new Duration(startTime, DateTime.now)
             Logger.info("Response from callback url " + callback + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
+
+          }.recover {
+            case t: Throwable =>
+              Logger.error("Media callback failed. Cleaning up tmp file: " + r._1, t)
+              r._1.delete()
           }(ec)
+
         }
       }(ec)
       Future.successful(Accepted(JsonAccepted))
     }
+
   }
 
 }
