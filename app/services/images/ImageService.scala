@@ -65,8 +65,9 @@ class ImageService {
     op.addImage()
 
     Future {
+      Logger.info("Applying ImageMagik operation to input file: " + input.getAbsoluteFile + ": " + input.canRead)
+
       val outputFile = File.createTempFile("workingimage", "." + "jpg")
-      Logger.info("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile + ": " + input.canRead)
       try {
         val start = DateTime.now
         val cmd: ConvertCmd = new ConvertCmd()
