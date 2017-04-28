@@ -210,11 +210,14 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
 
           callbackPost.map { rp =>
             val duration = new Duration(startTime, DateTime.now)
-            Logger.info("Response from callback url " + callback + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
+            Logger.info("Response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
 
           }.recover {
+            case c: java.net.ConnectException =>
+              Logger.warn("Could not connect to callback url '" + c + "' caller has gone away?. Cleaning up tmp file: " + r._1)
+              r._1.delete()
             case t: Throwable =>
               Logger.error("Media callback failed. Cleaning up tmp file: " + r._1, t)
               r._1.delete()
