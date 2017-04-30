@@ -100,6 +100,8 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
 
     imageService.workingSize(buffer).map { wo =>
+      buffer.delete()
+
       wo.map { w =>
         faceDetector.detectFaces(w).map { dfs =>
           Logger.info("Calling back to " + callback)
@@ -110,7 +112,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
           w.delete()
         }
       }
-    }
+    } // TODO recover and delete buffer on error
 
     Future.successful(Accepted(JsonAccepted))
   }
