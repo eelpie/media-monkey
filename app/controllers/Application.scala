@@ -198,7 +198,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
             r._1.delete()
           }).withHeaders(headersFor(of, r._2): _*)
         }
-      }
+      }(ec)
 
     } { c =>
       implicit val ec = executionContext
@@ -230,7 +230,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
               r._1.delete()
           }
         }
-      }
+      }(ec)
 
       Logger.info("Returning accepted")
       Future.successful(Accepted(JsonAccepted))
