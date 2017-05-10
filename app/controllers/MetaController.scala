@@ -182,21 +182,13 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       }
     }
 
-    metadata.map { mdo =>
+    implicit val sw = Json.writes[Summary]
+    implicit val fsaw = Json.writes[FormatSpecificAttributes]
+    implicit val tw = Json.writes[Track]
+    implicit val mdw = Json.writes[Metadata]
 
-      implicit val sw = Json.writes[Summary]
-      implicit val fsaw = Json.writes[FormatSpecificAttributes]
-      implicit val tw = Json.writes[Track]
-      implicit val mdw = Json.writes[Metadata]
-
-      callback.fold {
-        Logger.info("Replying to sync metadata call")
-        mdo.fold {
-          UnsupportedMediaType(Json.toJson("Unsupported media type"))
-        } { md =>
-          Ok(Json.toJson(mdo))
-        }
-      } { c =>
+    callback.map { c =>
+      metadata.map { mdo =>
         mdo.map { md =>
           Logger.info("Calling back to metadata callback url: " + c)
           WS.url(c).withHeaders((CONTENT_TYPE, "application/json")).
@@ -205,11 +197,22 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }
         }
-        Logger.info("Replying Accepted to async metadata call")
-        Accepted(Json.toJson("ok"))
       }
 
+      Logger.info("Replying Accepted to async metadata call")
+      Future.successful(Accepted(Json.toJson("ok")))
+
+    }.getOrElse {
+      metadata.map { mdo =>
+        Logger.info("Replying to sync metadata call")
+        mdo.fold {
+          UnsupportedMediaType(Json.toJson("Unsupported media type"))
+        } { md =>
+          Ok(Json.toJson(mdo))
+        }
+      }
     }
+
   }
 
   case class MetadataTags(title: Option[String], description: Option[String], created: Option[DateTime], attribution: Option[String], email: Option[String], place: Option[String])
