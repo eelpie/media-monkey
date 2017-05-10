@@ -122,58 +122,62 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
 
     implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
 
-    val metadata = tika.meta(sourceFile.file).flatMap { tmdo =>
+    val metadata = {
+      Logger.info("Processing metadate for file: " + sourceFile.file)
 
-      val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
-      val eventualContentType = tikaContentType.fold {
-        exiftool.contentType(sourceFile.file)
-      }(ct => Future.successful(Some(ct)))
+      tika.meta(sourceFile.file).flatMap { tmdo =>
+        val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
+        val eventualContentType = tikaContentType.fold {
+          exiftool.contentType(sourceFile.file)
+        }(ct => Future.successful(Some(ct)))
 
-      eventualContentType.flatMap { contentType =>
+        eventualContentType.flatMap { contentType =>
 
-        contentType.map { ct =>
-          val summary = summarise(ct, sourceFile.file)
+          contentType.map { ct =>
+            val summary = summarise(ct, sourceFile.file)
 
-          summary.`type`.fold {
-            sourceFile.clean()
-            val location = tmdo.flatMap(md => extractLocationFrom(md))
-            Future.successful(Some(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location)))
-
-          } { t =>
-
-            def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Option[Map[String, String]]): Future[Option[FormatSpecificAttributes]] = {
-              `type` match {
-                case "image" =>
-                  Future.successful(metadata.map(md => (inferImageSpecificAttributes(md))))
-                case "video" =>
-                  inferVideoSpecificAttributes(file).map(i => Some(i))
-                case _ =>
-                  Future.successful(None)
-              }
-            }
-
-            inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo).map { contentTypeSpecificAttributes =>
+            summary.`type`.fold {
               sourceFile.clean()
+              val location = tmdo.flatMap(md => extractLocationFrom(md))
+              Future.successful(Some(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location)))
 
-              val trackMetadata: Option[Seq[(String, String)]] = contentTypeSpecificAttributes.flatMap { ctsa =>
-                ctsa.tracks.map { ts =>
-                  val tracksToExportAsMetadata = Set("General", "Video")
-                  ts.filter(t => tracksToExportAsMetadata contains t.`type`).map { t =>
-                    t.fields.toSeq
-                  }.flatten
+            } { t =>
+
+              def inferContentTypeSpecificAttributes(`type`: String, file: File, metadata: Option[Map[String, String]]): Future[Option[FormatSpecificAttributes]] = {
+                `type` match {
+                  case "image" =>
+                    Future.successful(metadata.map(md => (inferImageSpecificAttributes(md))))
+                  case "video" =>
+                    inferVideoSpecificAttributes(file).map(i => Some(i))
+                  case _ =>
+                    Future.successful(None)
                 }
               }
 
-              val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map())) // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
-            val location = tmdo.flatMap(md => extractLocationFrom(combinedMetadata))
-              Some(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location))
+              inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo).map { contentTypeSpecificAttributes =>
+                sourceFile.clean()
+
+                val trackMetadata: Option[Seq[(String, String)]] = contentTypeSpecificAttributes.flatMap { ctsa =>
+                  ctsa.tracks.map { ts =>
+                    val tracksToExportAsMetadata = Set("General", "Video")
+                    ts.filter(t => tracksToExportAsMetadata contains t.`type`).map { t =>
+                      t.fields.toSeq
+                    }.flatten
+                  }
+                }
+
+                val combinedMetadata = tmdo.getOrElse(Map()) ++ (trackMetadata.getOrElse(Map()))
+                // TODO Backwards compatibility. Client apps need to be picking this data from the tracks fields
+                val location = tmdo.flatMap(md => extractLocationFrom(combinedMetadata))
+                Some(Metadata(summary = summary, formatSpecificAttributes = contentTypeSpecificAttributes, metadata = Some(combinedMetadata), location = location))
+              }
+
             }
 
+          }.getOrElse {
+            Logger.info("Unsupported media type")
+            Future.successful(None)
           }
-
-        }.getOrElse {
-          Logger.info("Unsupported media type")
-          Future.successful(None)
         }
       }
     }
@@ -186,22 +190,22 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       implicit val mdw = Json.writes[Metadata]
 
       callback.fold {
+        Logger.info("Replying to sync metadata call")
         mdo.fold {
           UnsupportedMediaType(Json.toJson("Unsupported media type"))
-
         } { md =>
           Ok(Json.toJson(mdo))
         }
       } { c =>
-
         mdo.map { md =>
+          Logger.info("Calling back to metadata callback url: " + c)
           WS.url(c).withHeaders((CONTENT_TYPE, "application/json")).
             withRequestTimeout(ThirtySeconds.toMillis).
             post(Json.stringify(Json.toJson(md))).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }
         }
-
+        Logger.info("Replying Accepted to async metadata call")
         Accepted(Json.toJson("ok"))
       }
 
