@@ -53,7 +53,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, None)(imageProcessingExecutionContext)
+      handleResult(eventualResult, None, imageProcessingExecutionContext)
     }
   }
 
@@ -79,7 +79,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, callback)(imageProcessingExecutionContext)
+      handleResult(eventualResult, callback, imageProcessingExecutionContext)
     }
   }
 
@@ -101,7 +101,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }.getOrElse(Future.successful(None))
       }
 
-      handleResult(eventualResult, callback)(videoProcessingExecutionContext)
+      handleResult(eventualResult, callback, videoProcessingExecutionContext)
     }
   }
 
@@ -118,7 +118,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         Some(r, noDimensions, AudioOutputFormat)
       }.getOrElse(None)
     }
-    handleResult(eventualResult, callback)(videoProcessingExecutionContext)
+    handleResult(eventualResult, callback, videoProcessingExecutionContext)
   }
 
 
@@ -160,7 +160,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }
       }
 
-      handleResult(eventualResult, callback)(videoProcessingExecutionContext)
+      handleResult(eventualResult, callback, videoProcessingExecutionContext)
     }
   }
 
@@ -175,7 +175,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     })
   }
 
-  private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String])(implicit ec: ExecutionContext): Future[Result] = {
+  private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String], executionContext: ExecutionContext): Future[Result] = {
 
     def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
       val dimensionHeaders = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
@@ -183,11 +183,15 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     }
 
     callback.fold {
+
+      implicit val ec = executionContext
+
       eventualResult.map { ro =>
         ro.fold {
           UnprocessableEntity(Json.toJson("Could not process file"))
 
         } { r =>
+          Logger.info("Sending file")
           val of: OutputFormat = r._3
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
@@ -197,13 +201,16 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
       }
 
     } { c =>
+      implicit val ec = executionContext
+
       eventualResult.map { ro =>
+        Logger.info("Mapping")
         ro.fold {
           Logger.warn("Failed to process file; not calling back")
 
         } { r =>
           val startTime = DateTime.now
-          Logger.info("Calling back to " + c + " using execution context: " + ec)
+          Logger.info("Calling back to " + c)
           val of: OutputFormat = r._3
 
           val callbackPost = WS.url(c).withHeaders(headersFor(of, r._2): _*).withRequestTimeout(ThirtySeconds.toMillis).post(r._1)
@@ -221,10 +228,11 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
             case t: Throwable =>
               Logger.error("Media callback failed. Cleaning up tmp file: " + r._1, t)
               r._1.delete()
-          }(ec)
-
+          }
         }
-      }(ec)
+      }
+
+      Logger.info("Returning accepted")
       Future.successful(Accepted(JsonAccepted))
     }
 
