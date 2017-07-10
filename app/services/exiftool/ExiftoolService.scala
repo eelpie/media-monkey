@@ -76,6 +76,9 @@ class ExiftoolService {
 
   def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
 
+    val outputFile = File.createTempFile("meta", ".tmp")
+    FileUtils.copyFile(f, outputFile)
+
     val UTF8 = Charset.forName("UTF-8")
 
     Future {
@@ -84,9 +87,6 @@ class ExiftoolService {
         FileUtils.writeStringToFile(fieldFile, f._3, UTF8)
         "-" + f._1 + ":" + f._2 + "<=" + fieldFile.getAbsolutePath
       }
-
-      val outputFile = File.createTempFile("meta", ".tmp")
-      FileUtils.copyFile(f, outputFile)
 
       val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
@@ -105,10 +105,12 @@ class ExiftoolService {
 
       } else {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
+        // TODO clear down file
         None
       }
 
     }.recover {
+      // TODO clear down file
       case t: Throwable =>
         Logger.error("exiftool call failed", t)
         None
