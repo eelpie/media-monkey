@@ -18,7 +18,7 @@ class FaceDetector {
 
       def asPercentage(i: Float, of: Int) = {
         val percentage = (i / of) * 100
-        BigDecimal(percentage).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
+        BigDecimal.decimal(percentage).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
       }
 
       Logger.info("Detecting faces in file: " + source.getAbsolutePath)
