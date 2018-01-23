@@ -30,7 +30,7 @@ curl -F 'tags={"title": "A title", "description": "A description", created: "201
 
 Attempt to detect faces in the posted image.
 This information might be used to make an informed decision about how to crop an image.
-Backed by openimaj.
+Backed by [openimaj](https://github.com/openimaj/openimaj).
 
 ```
 callback
