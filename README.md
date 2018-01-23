@@ -1,4 +1,4 @@
-#Media Monkey
+## Media Monkey
 
 Multi media file wrangling microservice.
 Wraps various open source media tools with an HTTP/JSON interface.
@@ -61,6 +61,6 @@ The image file should be sent as raw bytes on the request body.
 The desired return image format should be specified using the Accepts header on the request.
 Backed by imagemagick.
 
-#### POST /video/transcode
+### POST /video/transcode
 
 Transcode a video.
