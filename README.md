@@ -64,3 +64,12 @@ Backed by imagemagick.
 ### POST /video/transcode
 
 Transcode a video.
+
+
+## Docker
+
+This microservice is available as a Docker image:
+
+```
+docker run -p 9001:9001 eelpie/media-monkey
+```
