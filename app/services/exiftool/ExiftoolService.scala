@@ -5,6 +5,7 @@ import java.nio.charset.Charset
 
 import org.apache.commons.io.FileUtils
 import play.api.Logger
+import play.api.libs.Files
 import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.{global => ec}
@@ -76,8 +77,8 @@ class ExiftoolService {
 
   def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
 
-    val outputFile = File.createTempFile("meta", ".tmp")
-    FileUtils.copyFile(f, outputFile)
+    val outputFile = Files.TemporaryFile("meta", ".tmp")
+    FileUtils.copyFile(f, outputFile.file)
 
     val UTF8 = Charset.forName("UTF-8")
 
@@ -88,7 +89,7 @@ class ExiftoolService {
         "-" + f._1 + ":" + f._2 + "<=" + fieldFile.getAbsolutePath
       }
 
-      val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.getAbsolutePath
+      val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.file.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
       println("Exiftool command: " + cmd)
 
