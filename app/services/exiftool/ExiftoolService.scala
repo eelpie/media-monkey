@@ -102,7 +102,7 @@ class ExiftoolService {
 
       val exitValue = process.exitValue()
       if (exitValue == 0) {
-        Some(outputFile)
+        Some(outputFile.file)
 
       } else {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
