@@ -86,10 +86,10 @@ class ExiftoolService {
       val tagArguments = tags.map { f =>
         val fieldFile = Files.TemporaryFile("meta", ".field")
         FileUtils.writeStringToFile(fieldFile.file, f._3, UTF8)
-        "-" + f._1 + ":" + f._2 + "<=" + fieldFile.file.getAbsolutePath
+        ("-" + f._1 + ":" + f._2 + "<=" + fieldFile.file.getAbsolutePath, fieldFile)
       }
 
-      val cmd = Seq("exiftool") ++ tagArguments :+ outputFile.file.getAbsolutePath
+      val cmd = Seq("exiftool") ++ tagArguments.map(_._1) :+ outputFile.file.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
       println("Exiftool command: " + cmd)
 
@@ -108,6 +108,10 @@ class ExiftoolService {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
         // TODO clear down file
         None
+      }
+
+      tagArguments.map { ta =>
+        ta._2.file.delete()
       }
 
     }.recover {
