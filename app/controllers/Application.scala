@@ -191,7 +191,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
           UnprocessableEntity(Json.toJson("Could not process file"))
 
         } { r =>
-          Logger.info("Sending file")
+          Logger.debug("Sending file")
           val of: OutputFormat = r._3
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
