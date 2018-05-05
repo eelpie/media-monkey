@@ -76,7 +76,6 @@ class ExiftoolService {
   }
 
   def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
-
     val outputFile = Files.TemporaryFile("meta", ".tmp")
     FileUtils.copyFile(f, outputFile.file)
 
@@ -91,7 +90,6 @@ class ExiftoolService {
 
       val cmd = Seq("exiftool") ++ tagArguments.map(_._1) :+ outputFile.file.getAbsolutePath
       Logger.info("Exiftool command: " + cmd)
-      println("Exiftool command: " + cmd)
 
       val out = new StringBuilder()
       val logger = ProcessLogger(l => {
@@ -99,25 +97,26 @@ class ExiftoolService {
       })
 
       val process = cmd.run(logger)
-
       val exitValue = process.exitValue()
+
+      Logger.info("Clearing down " + tagArguments.size + " temp files after exiftool")
+      tagArguments.map { ta =>
+        ta._2.file.delete()
+      }
+
       if (exitValue == 0) {
         Some(outputFile.file)
 
       } else {
         Logger.warn("exiftool process failed for file: " + f.getAbsolutePath + " / " + out.mkString)
-        // TODO clear down file
         None
       }
 
-      tagArguments.map { ta =>
-        ta._2.file.delete()
-      }
-
-    }.recover {
-      // TODO clear down file
+    }.recover { // TODO clear down files
       case t: Throwable =>
-        Logger.error("exiftool call failed", t)
+        Logger.error("exiftool call failed with an exception", t)
+        None
+      case _ =>
         None
     }
   }
