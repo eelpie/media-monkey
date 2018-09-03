@@ -8,13 +8,12 @@ import play.api.Logger
 import play.api.libs.Files
 import play.api.libs.json.Json
 
-import scala.concurrent.ExecutionContext.Implicits.{global => ec}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
 
 class ExiftoolService {
 
-  def contentType(f: File): Future[Option[String]] = {
+  def contentType(f: File)(implicit ec: ExecutionContext): Future[Option[String]] = {
 
     def parse(json: String): Option[String] = {
       Json.parse(json).\\("MIMEType").headOption.map { j =>
@@ -48,7 +47,7 @@ class ExiftoolService {
     }
   }
 
-  def extractXmp(f: File): Future[Option[String]] = {
+  def extractXmp(f: File)(implicit ec: ExecutionContext): Future[Option[String]] = {
     Future {
       val cmd = Seq("exiftool", "-xmp", "-b", f.getAbsolutePath)
 
@@ -75,7 +74,7 @@ class ExiftoolService {
     }
   }
 
-  def addMeta(f: File, tags: Seq[(String, String, String)]): Future[Option[File]] = {
+  def addMeta(f: File, tags: Seq[(String, String, String)])(implicit ec: ExecutionContext): Future[Option[File]] = {
     val outputFile = Files.TemporaryFile("meta", ".tmp")
     FileUtils.copyFile(f, outputFile.file)
 
