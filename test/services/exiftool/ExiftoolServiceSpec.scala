@@ -5,6 +5,7 @@ import java.io.File
 import org.specs2.mutable.Specification
 
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class ExiftoolServiceSpec extends Specification {
