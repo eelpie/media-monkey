@@ -2,6 +2,7 @@ package services.facedetection
 
 import java.io.File
 
+import javax.inject.Inject
 import model.Point
 import org.joda.time.{DateTime, Duration}
 import org.openimaj.image.ImageUtilities
@@ -11,7 +12,7 @@ import play.api.Logger
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 
-class FaceDetector {
+class FaceDetector @Inject()() {
 
   def detectFaces(source: File)(implicit ec: ExecutionContext): Future[Seq[model.DetectedFace]] = {
     Future {
@@ -26,19 +27,17 @@ class FaceDetector {
 
       val fImage = ImageUtilities.readF(source)
       val detected = new HaarCascadeDetector().detectFaces(fImage).map { r =>
-          val b = r.getBounds()
+        val b = r.getBounds()
 
-          val topLeftBound = Point(asPercentage(b.getTopLeft.getX, fImage.width), asPercentage(b.getTopLeft.getY, fImage.height))
-          val bottomRightBound = Point(asPercentage(b.getBottomRight.getX.toInt, fImage.width), asPercentage(b.getBottomRight.getY.toInt, fImage.height))
+        val topLeftBound = Point(asPercentage(b.getTopLeft.getX, fImage.width), asPercentage(b.getTopLeft.getY, fImage.height))
+        val bottomRightBound = Point(asPercentage(b.getBottomRight.getX.toInt, fImage.width), asPercentage(b.getBottomRight.getY.toInt, fImage.height))
 
-          model.DetectedFace(bounds = model.Bounds(topLeftBound, bottomRightBound), confidence = r.getConfidence)
-        }
+        model.DetectedFace(bounds = model.Bounds(topLeftBound, bottomRightBound), confidence = r.getConfidence)
+      }
 
-        Logger.info("Detected " + detected.size + " in " + new Duration(start, DateTime.now))
-        detected
+      Logger.info("Detected " + detected.size + " in " + new Duration(start, DateTime.now))
+      detected
     }
   }
 
 }
-
-object FaceDetector extends FaceDetector

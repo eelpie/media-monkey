@@ -2,25 +2,23 @@ package services.video
 
 import java.io.File
 
+import akka.actor.ActorSystem
+import javax.inject.Inject
 import model.Track
 import org.im4java.core.{ConvertCmd, IMOperation}
 import play.api.Logger
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
 
-object VideoService extends MediainfoInterpreter with AvconvPadding {
+class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: MediainfoService) extends MediainfoInterpreter with AvconvPadding {
 
-  val logger: ProcessLogger = ProcessLogger(l => Logger.info("avconv: " + l))
-
-  val mediainfoService = MediainfoService
+  val logger = ProcessLogger(l => Logger.info("avconv: " + l))
 
   def thumbnail(input: File, outputFormat: String, width: Option[Int], height: Option[Int], sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
 
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
@@ -63,7 +61,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
   }
 
   def strip(input: File, outputFormat: String, width: Int, height: Int, sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
         val ir = inferRotation(mediainfo)
@@ -120,8 +118,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
   }
 
   def audio(input: File): Future[Option[File]] = {
-
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     mediainfoService.mediainfo(input).map { mediainfo =>
       val output = File.createTempFile("audio", "." + "wav")
@@ -144,8 +141,7 @@ object VideoService extends MediainfoInterpreter with AvconvPadding {
   }
 
   def transcode(input: File, outputFormat: String, outputSize: Option[(Int, Int)], sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
-
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse(inferRotation(mediainfo))

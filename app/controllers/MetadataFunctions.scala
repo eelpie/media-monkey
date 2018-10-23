@@ -2,17 +2,18 @@ package controllers
 
 import java.io.{File, FileInputStream}
 
-import controllers.Application._
-import model.{FormatSpecificAttributes, Summary, Track}
+import model.{FormatSpecificAttributes, Summary}
 import org.apache.commons.codec.digest.DigestUtils
+import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.tika.TikaService
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-trait MetadataFunctions {
+trait MetadataFunctions extends MediainfoInterpreter {
 
   val tika: TikaService
+  def mediainfoService: MediainfoService
 
   private val RecognisedImageTypes = Seq(
     "image/jpeg",

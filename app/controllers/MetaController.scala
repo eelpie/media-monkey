@@ -1,17 +1,18 @@
 package controllers
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
+import akka.actor.ActorSystem
 import futures.Retry
+import javax.inject.Inject
 import model._
 import org.apache.commons.io.FileUtils
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.Logger
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.WS
-import play.api.mvc.{Action, BodyParsers, Controller, Result}
+import play.api.libs.ws.WSClient
+import play.api.mvc.{Action, BodyParsers, Controller}
 import services.exiftool.ExiftoolService
 import services.facedetection.FaceDetector
 import services.geo.ExifLocationExtractor
@@ -21,19 +22,17 @@ import services.tika.TikaService
 import services.video.VideoService
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
-object MetaController extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
+class MetaController @Inject()(val akkaSystem: ActorSystem, ws: WSClient, tikaService: TikaService,
+                               imageService: ImageService, videoService: VideoService, exiftoolService: ExiftoolService,
+                               mediainfoService: MediainfoService, faceDetector: FaceDetector) extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
 
-  val mediainfoService: MediainfoService = MediainfoService
-  val tika = TikaService
-  val exiftool = ExiftoolService
-  val imageService = ImageService
-  val videoService = VideoService
-  val faceDetector = FaceDetector
+  val thirtySeconds = Duration(30, TimeUnit.SECONDS)
 
   def tag = Action.async(BodyParsers.parse.multipartFormData) { request =>
 
-    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+    implicit val executionContext = akkaSystem.dispatchers.lookup("meta-processing-context")
 
     val body = request.body
 
@@ -65,7 +64,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             tags.place.map(p => ("ITPC", "ContentLocationName", p))
         ).flatten
 
-        ExiftoolService.addMeta(bf.ref.file, tagsToAdd).map { fo =>
+        exiftoolService.addMeta(bf.ref.file, tagsToAdd).map { fo =>
           fo.fold {
             UnprocessableEntity(Json.toJson("Could not process file"))
 
@@ -95,7 +94,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
     val buffer = File.createTempFile("buffer", "." + "jpg")
     FileUtils.copyFile(sourceFile.file, buffer)
 
-    implicit val executionContext = Akka.system.dispatchers.lookup("face-detection-processing-context")
+    implicit val executionContext = akkaSystem.dispatchers.lookup("face-detection-processing-context")
 
     imageService.workingSize(buffer).map { wo =>
       buffer.delete()
@@ -103,7 +102,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       wo.map { w =>
         faceDetector.detectFaces(w).map { dfs =>
           Logger.info("Calling back to " + callback)
-          WS.url(callback).withRequestTimeout(ThirtySeconds.toMillis).
+          ws.url(callback).withRequestTimeout(thirtySeconds).
             post(asJson(dfs)).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }
@@ -118,7 +117,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
   def meta(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
-    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+    implicit val executionContext = akkaSystem.dispatchers.lookup("meta-processing-context")
 
     val metadata = {
       Logger.info("Processing metadate for file: " + sourceFile.file)
@@ -126,7 +125,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       tika.meta(sourceFile.file).flatMap { tmdo =>
         val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
         val eventualContentType = tikaContentType.fold {
-          exiftool.contentType(sourceFile.file)
+          exiftoolService.contentType(sourceFile.file)
         }(ct => Future.successful(Some(ct)))
 
         eventualContentType.flatMap { contentType =>
@@ -135,7 +134,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
             val summary = summarise(ct, sourceFile.file)
 
             summary.`type`.fold {
-              sourceFile.clean()
+              sourceFile.delete
               val location = tmdo.flatMap(md => extractLocationFrom(md))
               Future.successful(Some(Metadata(summary = summary, formatSpecificAttributes = None, metadata = tmdo, location)))
 
@@ -153,7 +152,7 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
               }
 
               inferContentTypeSpecificAttributes(t, sourceFile.file, tmdo).map { contentTypeSpecificAttributes =>
-                sourceFile.clean()
+                sourceFile.delete
 
                 val trackMetadata: Option[Seq[(String, String)]] = contentTypeSpecificAttributes.flatMap { ctsa =>
                   ctsa.tracks.map { ts =>
@@ -189,8 +188,8 @@ object MetaController extends Controller with MediainfoInterpreter with Retry wi
       metadata.map { mdo =>
         mdo.map { md =>
           Logger.info("Calling back to metadata callback url: " + c)
-          WS.url(c).withHeaders((CONTENT_TYPE, "application/json")).
-            withRequestTimeout(ThirtySeconds.toMillis).
+          ws.url(c).withHeaders((CONTENT_TYPE, "application/json")).
+            withRequestTimeout(thirtySeconds).
             post(Json.stringify(Json.toJson(md))).map { rp =>
             Logger.info("Response from callback url " + callback + ": " + rp.status)
           }

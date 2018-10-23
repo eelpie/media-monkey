@@ -20,5 +20,3 @@ class MediainfoParser {
   }
 
 }
-
-object MediainfoParser extends MediainfoParser

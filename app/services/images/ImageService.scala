@@ -2,18 +2,19 @@ package services.images
 
 import java.io.File
 
+import akka.actor.ActorSystem
+import javax.inject.Inject
 import org.im4java.core.{ConvertCmd, IMOperation, Info}
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ImageService {
+class ImageService @Inject()(akkaSystem: ActorSystem) {
 
   def info(input: File): Future[(Int, Int)] = {
-    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+    implicit val imageProcessingExecutionContext = akkaSystem.dispatchers.lookup("image-processing-context")
+
     Future {
       val imageInfo = new Info(input.getAbsolutePath, true)
       (imageInfo.getImageWidth, imageInfo.getImageHeight)
@@ -31,8 +32,7 @@ class ImageService {
         op
     }
 
-    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
-
+    implicit val imageProcessingExecutionContext = akkaSystem.dispatchers.lookup("image-processing-context")
     Future {
       val outputFile = File.createTempFile("image", "." + outputFormat)
       Logger.debug("Applying ImageMagik operation to output file: " + outputFile.getAbsoluteFile)
@@ -57,7 +57,6 @@ class ImageService {
   }
 
   def workingSize(input: File)(implicit ec: ExecutionContext): Future[Option[File]] = {
-
     val op = new IMOperation()
     addInputImageUsingFirstLayer(op)
     op.autoOrient()
@@ -130,7 +129,7 @@ class ImageService {
       }
     }
 
-    implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+    implicit val imageProcessingExecutionContext = akkaSystem.dispatchers.lookup("image-processing-context")
 
     Future {
       val outputFile = File.createTempFile("image", "." + outputFormat)
@@ -164,5 +163,3 @@ class ImageService {
   }
 
 }
-
-object ImageService extends ImageService

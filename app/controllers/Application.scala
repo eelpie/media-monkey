@@ -1,23 +1,27 @@
 package controllers
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
+import akka.actor.ActorSystem
 import futures.Retry
-import org.joda.time.{DateTime, Duration}
+import javax.inject.Inject
+import org.joda.time.DateTime
 import play.api.Logger
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
 import play.api.libs.json._
-import play.api.libs.ws.WS
+import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.video.VideoService
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
-object Application extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
+class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoService: VideoService, imageService: ImageService, mediainfoService: MediainfoService) extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
+
+  val thirtySeconds = Duration(30, TimeUnit.SECONDS)
 
   val XWidth = "X-Width"
   val XHeight = "X-Height"
@@ -30,10 +34,6 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
 
   val UnsupportedOutputFormatRequested = "Unsupported output format requested"
 
-  val mediainfoService = MediainfoService
-  val imageService = ImageService
-  val videoService = VideoService
-
   def crop(width: Int, height: Int, x: Int, y: Int) = Action.async(BodyParsers.parse.temporaryFile) { request =>
 
     val sourceFile = request.body
@@ -41,10 +41,10 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
-      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+      implicit val imageProcessingExecutionContext = akkaSystem.dispatchers.lookup("image-processing-context")
 
       val eventualResult = imageService.cropImage(sourceFile.file, width, height, x, y, of.fileExtension).flatMap { ro =>
-        sourceFile.clean()
+        sourceFile.delete
 
         ro.map{ r =>
           imageService.info(r).map { dimensions =>
@@ -67,10 +67,10 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       // TODO no error handling
 
-      implicit val imageProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("image-processing-context")
+      implicit val imageProcessingExecutionContext = akkaSystem.dispatchers.lookup("image-processing-context")
 
       val eventualResult = imageService.resizeImage(sourceFile.file, width, height, rotationToApply, of.fileExtension, fill.getOrElse(false), gravity).flatMap { ro =>
-        sourceFile.clean()
+        sourceFile.delete
 
         ro.map { r =>
           imageService.info(r).map { dimensions =>
@@ -87,12 +87,12 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
     val width = w.getOrElse(320)
     val height = h.getOrElse(180)
 
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
       val sourceFile = request.body
       val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
-        sourceFile.clean()
+        sourceFile.delete
 
         ro.map { r =>
           imageService.info(r).map { dimensions =>
@@ -108,10 +108,10 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
   def videoAudio(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     val eventualResult = videoService.audio(sourceFile.file).map { ro =>
-      sourceFile.clean()
+      sourceFile.delete
 
       ro.map { r =>
         val noDimensions: Option[(Int, Int)] = None
@@ -125,14 +125,14 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
   def videoTranscode(width: Option[Int], height: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
-    implicit val videoProcessingExecutionContext: ExecutionContext = Akka.system.dispatchers.lookup("video-processing-context")
+    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedVideoOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
 
       val eventualResult = if (of.mineType.startsWith("image/")) {
 
         videoService.thumbnail(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
-          sourceFile.clean()
+          sourceFile.delete
 
           ro.map { r =>
             imageService.info(r).map { dimensions =>
@@ -150,7 +150,7 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
         }
 
         videoService.transcode(sourceFile.file, of.fileExtension, outputSize, aspectRatio, rotate).flatMap { ro =>
-          sourceFile.clean()
+          sourceFile.delete
 
           ro.map{ r =>
             mediainfoService.mediainfo(r).map { mi =>
@@ -213,10 +213,10 @@ object Application extends Controller with Retry with MediainfoInterpreter with 
           Logger.info("Calling back to " + c)
           val of: OutputFormat = r._3
 
-          val callbackPost = WS.url(c).withHeaders(headersFor(of, r._2): _*).withRequestTimeout(ThirtySeconds.toMillis).post(r._1)
+          val callbackPost = ws.url(c).withHttpHeaders(headersFor(of, r._2): _*).withRequestTimeout(thirtySeconds).post(r._1)
 
           callbackPost.map { rp =>
-            val duration = new Duration(startTime, DateTime.now)
+            val duration = new org.joda.time.Duration(startTime, DateTime.now)
             Logger.info("Response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()

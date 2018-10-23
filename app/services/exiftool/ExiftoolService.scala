@@ -3,15 +3,16 @@ package services.exiftool
 import java.io.File
 import java.nio.charset.Charset
 
+import javax.inject.Inject
 import org.apache.commons.io.FileUtils
 import play.api.Logger
-import play.api.libs.Files
+import play.api.libs.Files.TemporaryFileCreator
 import play.api.libs.json.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessLogger, _}
 
-class ExiftoolService {
+class ExiftoolService @Inject()(val temporaryFileCreator: TemporaryFileCreator) {
 
   def contentType(f: File)(implicit ec: ExecutionContext): Future[Option[String]] = {
 
@@ -75,14 +76,14 @@ class ExiftoolService {
   }
 
   def addMeta(f: File, tags: Seq[(String, String, String)])(implicit ec: ExecutionContext): Future[Option[File]] = {
-    val outputFile = Files.TemporaryFile("meta", ".tmp")
+    val outputFile = temporaryFileCreator.create("meta", ".tmp")
     FileUtils.copyFile(f, outputFile.file)
 
     val UTF8 = Charset.forName("UTF-8")
 
     Future {
       val tagArguments = tags.map { f =>
-        val fieldFile = Files.TemporaryFile("meta", ".field")
+        val fieldFile = temporaryFileCreator.create("meta", ".field")
         FileUtils.writeStringToFile(fieldFile.file, f._3, UTF8)
         ("-" + f._1 + ":" + f._2 + "<=" + fieldFile.file.getAbsolutePath, fieldFile)
       }
@@ -121,5 +122,3 @@ class ExiftoolService {
   }
   
 }
-
-object ExiftoolService extends ExiftoolService

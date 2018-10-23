@@ -2,17 +2,15 @@ package services.mediainfo
 
 import java.io.File
 
+import javax.inject.Inject
 import model.Track
 import play.api.Logger
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.{global => ec}
-
 import scala.sys.process.{ProcessLogger, _}
 
-class MediainfoService {
-
-  val mediainfoParser = MediainfoParser
+class MediainfoService @Inject()(val mediainfoParser: MediainfoParser) {
 
   def mediainfo(f: File): Future[Option[Seq[Track]]] = {
     Future {
@@ -42,5 +40,3 @@ class MediainfoService {
   }
 
 }
-
-object MediainfoService extends MediainfoService

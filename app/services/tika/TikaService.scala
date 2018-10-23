@@ -1,56 +1,49 @@
 package services.tika
 
-import java.io.{File, FileInputStream}
+import java.io.File
+import java.util.concurrent.TimeUnit
 
-import com.ning.http.client.{AsyncHttpClient, Response}
+import akka.actor.ActorSystem
+import javax.inject.Inject
 import org.apache.tika.mime.MimeTypes
-import play.api.Play.current
-import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
-import play.api.libs.ws.WS
-import play.api.{Logger, Play}
+import play.api.libs.ws.WSClient
+import play.api.{Configuration, Logger}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
 
-trait TikaService {
+class TikaService @Inject()(configuration: Configuration, ws: WSClient, akkaSystem: ActorSystem ) {
 
-  val tikaUrl: String
+  val tikaUrl = configuration.getString("tika.url").get
 
   def meta(f: File): Future[Option[Map[String, String]]] = {
+    implicit val executionContext = akkaSystem.dispatchers.lookup("meta-processing-context")
 
-    implicit val executionContext = Akka.system.dispatchers.lookup("meta-processing-context")
+    val tenSeconds = Duration(10, TimeUnit.SECONDS)
 
-    Future {
-      Logger.info("Posting submitted file to Tika for typing")
-      val asyncHttpClient: AsyncHttpClient = WS.client.underlying
-
-      val putBuilder: AsyncHttpClient#BoundRequestBuilder = asyncHttpClient.preparePut(tikaUrl + "/meta").
-        addHeader("Accept", "application/json; charset=UTF-8").
-        setRequestTimeout(10000).
-        setBody(new FileInputStream(f))
-
-      val request = putBuilder.build()
-      val response: Response = asyncHttpClient.executeRequest(request).get
-      if (response.getStatusCode == 200) {
-        Json.parse(response.getResponseBody) match {
-          case JsObject(fields) => {
-            val toMap: Map[String, String] = fields.map((f: (String, JsValue)) => {
-              val key: String = f._1
-              val value: Option[String] = f._2 match {
-                case JsString(j) => Some(j.toString())
-                case _ => None
-              }
-              value.map(v => (key, v))
-            }).flatten.toMap
-            Some(toMap)
+    Logger.info("Posting submitted file to Tika for typing")
+    val response = ws.url(tikaUrl + "/meta").withRequestTimeout(tenSeconds).addHttpHeaders(("Accept", "application/json; charset=UTF-8")).put(f)
+    response.map { r =>
+      r.status match {
+        case 200 =>
+          Json.parse(r.body) match {
+            case JsObject(fields) =>
+              val toMap = fields.map((f: (String, JsValue)) => {
+                val key: String = f._1
+                val value: Option[String] = f._2 match {
+                  case JsString(j) => Some(j.toString())
+                  case _ => None
+                }
+                value.map(v => (key, v))
+              }).flatten.toMap
+              Some(toMap)
+            case _ => None
           }
-          case _ => None
-        }
-
-      } else {
-        Logger.warn("Unexpected response from Tika: " + response.getStatusCode + " / " + response.getResponseBody)
-        Some(Map())
+        case _ =>
+          Logger.warn("Unexpected response from Tika: " + r.status + " / " + r.body)
+          Some(Map.empty)
       }
     }
   }
@@ -67,8 +60,4 @@ trait TikaService {
     }
   }
 
-}
-
-object TikaService extends TikaService {
-  override lazy val tikaUrl = Play.configuration.getString("tika.url").get
 }
