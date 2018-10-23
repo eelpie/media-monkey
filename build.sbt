@@ -4,7 +4,7 @@ version := "1.0"
 
 lazy val `media-monkey` = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.12"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
@@ -35,12 +35,6 @@ packageSummary in Linux := "Media Monkey"
 packageDescription := "Media handling service"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2"
-
-debianPackageDependencies in Debian ++= Seq("imagemagick", "libav-tools", "mediainfo", "openjdk-8-jdk", "libimage-exiftool-perl", "webp")
-
-import com.typesafe.sbt.packager.archetypes.ServerLoader
-
-serverLoading in Debian:= ServerLoader.Systemd
 
 javaOptions in Universal ++= Seq(
   // -J params will be added as jvm parameters
