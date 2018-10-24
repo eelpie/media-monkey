@@ -4,14 +4,16 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.stream.scaladsl.FileIO
 import futures.Retry
 import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.http.FileMimeTypes
+import play.api.http.{FileMimeTypes, HttpEntity}
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
+import play.libs.ws.DefaultBodyWritables
 import services.images.ImageService
 import services.mediainfo.{MediainfoInterpreter, MediainfoService}
 import services.video.VideoService
@@ -215,7 +217,8 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
           Logger.info("Calling back to " + c)
           val of: OutputFormat = r._3
 
-          val callbackPost = ws.url(c).withHttpHeaders(headersFor(of, r._2): _*).withRequestTimeout(thirtySeconds).post(r._1)
+          val source = FileIO.fromFile(r._1)
+          val callbackPost = ws.url(c).withHttpHeaders(headersFor(of, r._2): _*).withRequestTimeout(thirtySeconds).withBody(source).execute("POST")
 
           callbackPost.map { rp =>
             val duration = new org.joda.time.Duration(startTime, DateTime.now)
