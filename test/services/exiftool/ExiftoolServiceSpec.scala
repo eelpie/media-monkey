@@ -35,8 +35,8 @@ class ExiftoolServiceSpec extends PlaySpec with GuiceOneServerPerSuite {
 
     val xmp: String = Await.result(exifToolService.extractXmp(withMetadata), tenSeconds).get
 
-    xmp.contains("A test title") must be true
-    xmp.contains("A test description") must be true
+    xmp.contains("A test title") must equal(true)
+    xmp.contains("A test description") must equal(true)
   }
 
 }
