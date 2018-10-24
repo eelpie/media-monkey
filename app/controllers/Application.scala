@@ -181,9 +181,9 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
   private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String], executionContext: ExecutionContext): Future[Result] = {
 
-    def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)]): Seq[(String, String)] = {
+    def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)], file: File): Seq[(String, String)] = {
       val dimensionHeaders = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
-      Seq(CONTENT_TYPE -> of.mineType) ++ dimensionHeaders
+      Seq(CONTENT_TYPE -> of.mineType) ++ Seq(CONTENT_LENGTH -> file.length.toString) ++ dimensionHeaders
     }
 
     callback.fold {
@@ -200,7 +200,7 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
             r._1.delete()
-          }).withHeaders(headersFor(of, r._2): _*)
+          }).withHeaders(headersFor(of, r._2, r._1): _*)
         }
       }(ec)
 
@@ -218,7 +218,7 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
           val of: OutputFormat = r._3
 
           val source = FileIO.fromFile(r._1)
-          val callbackPost = ws.url(c).withHttpHeaders(headersFor(of, r._2): _*).withRequestTimeout(thirtySeconds).withBody(source).execute("POST")
+          val callbackPost = ws.url(c).withHttpHeaders(headersFor(of, r._2, r._1): _*).withRequestTimeout(thirtySeconds).withBody(source).execute("POST")
 
           callbackPost.map { rp =>
             val duration = new org.joda.time.Duration(startTime, DateTime.now)
