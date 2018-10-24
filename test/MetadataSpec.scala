@@ -3,14 +3,13 @@ import java.io.File
 import org.specs2.mutable._
 import play.api.Play.current
 import play.api.libs.json.Json
-import play.api.libs.ws.WS
 import play.api.test.Helpers._
 import play.api.test._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
 
-class MetadataSpec extends Specification with ResponseToFileWriter {
+class MetadataSpec extends Specification with ResponseToFileWriter with TestWSClient {
 
   val port: Port = 3334
   val localUrl = "http://localhost:" + port.toString
@@ -18,7 +17,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "can detect images" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -30,7 +29,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "should provide a suggested file extension" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -57,7 +56,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "image size and orientation should be summarised" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -71,7 +70,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "image orientation should account for EXIF rotation corrections" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.JPG"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_9803.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -86,7 +85,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "EXIF data can be extracted from images" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -98,7 +97,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "can detect videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -110,7 +109,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "video size can be detected" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -123,7 +122,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "video metadata should include mediainfo data" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -134,7 +133,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "video metadata should include inferred rotation" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
       val rotationField = (Json.parse(response.body) \ "formatSpecificAttributes" \ "rotation").toOption
@@ -145,7 +144,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "md5 hash should be included in the summary to assist with duplicate detection" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -156,7 +155,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "Location should be extracted from image EXIF GPS tags if available" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -168,7 +167,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter {
 
   "Location should be extracted from video ISO6709 fields if available" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/VID_20150822_144123.mp4"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 

@@ -2,6 +2,7 @@ package services.facedetection
 
 import java.io.File
 
+import javax.inject.Inject
 import org.specs2.mutable.Specification
 import play.api.test.Helpers.running
 import play.api.test.{Port, TestServer}
@@ -10,7 +11,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.global
 
-class FaceDetectorSpec extends Specification {
+class FaceDetectorSpec @Inject()(faceDetector: FaceDetector) extends Specification {
 
   val port: Port = 3334
 
@@ -20,7 +21,7 @@ class FaceDetectorSpec extends Specification {
     running(TestServer(port)) {
       implicit val ec = global
 
-      val detectedFaces = Await.result(FaceDetector.detectFaces(imageWithSingleFace), Duration(10, SECONDS))
+      val detectedFaces = Await.result(faceDetector.detectFaces(imageWithSingleFace), Duration(10, SECONDS))
 
       detectedFaces.size must equalTo(1)
     }
@@ -30,7 +31,7 @@ class FaceDetectorSpec extends Specification {
     running(TestServer(port)) {
       implicit val ec = global
 
-      val detectedFaces = Await.result(FaceDetector.detectFaces(imageWithSingleFace), Duration(10, SECONDS))
+      val detectedFaces = Await.result(faceDetector.detectFaces(imageWithSingleFace), Duration(10, SECONDS))
       val detectedFaceBounds = detectedFaces.head.bounds
 
       detectedFaceBounds.topLeft.x must equalTo(27.3)

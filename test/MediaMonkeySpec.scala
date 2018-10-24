@@ -1,16 +1,15 @@
 import java.io.File
 
 import org.specs2.mutable._
-import play.api.Play.current
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.{WS, WSResponse}
+import play.api.libs.ws.WSResponse
 import play.api.test.Helpers._
 import play.api.test._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
 
-class MediaMonkeySpec extends Specification with ResponseToFileWriter {
+class MediaMonkeySpec extends Specification with ResponseToFileWriter with TestWSClient {
 
   val port: Port = 3334
   val localUrl = "http://localhost:" + port.toString
@@ -18,7 +17,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale image to fit box along longest axis" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/4.webp"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/4.webp"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -32,7 +31,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale and crop image to fill box" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -47,7 +46,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
   "scaled images should be returned with there dimensions available in the headers" in {
     running(TestServer(port)) {
 
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0&fill=true").post(new File("test/resources/IMG_9758.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -59,7 +58,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale portrait image to fit box along longest axis" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0").post(new File("test/resources/IMG_9803.JPG"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=600&height=800&rotate=0").post(new File("test/resources/IMG_9803.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -73,7 +72,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can scale and crop portrait image to fill box" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=600&height=800&rotate=0&fill=true").post(new File("test/resources/IMG_9803.JPG"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=600&height=800&rotate=0&fill=true").post(new File("test/resources/IMG_9803.JPG"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -87,7 +86,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "image output format can be specified via the Accept header" in {
     running(TestServer(port)) {
-      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+      val eventualScalingResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").
         withHeaders(("Accept" -> "image/png")).
         post(new File("test/resources/IMG_9758.JPG"))
 
@@ -100,7 +99,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "scaled image dimensions should be returned as headers" in {
     running(TestServer(port)) {
-      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+      val eventualScalingResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").
         withHeaders(("Accept" -> "image/png")).
         post(new File("test/resources/IMG_9758.JPG"))
 
@@ -113,7 +112,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "unknown image output formats should result in a 400 response" in {
     running(TestServer(port)) {
-      val eventualScalingResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").
+      val eventualScalingResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").
         withHeaders(("Accept" -> "image/sausages")).
         post(new File("test/resources/IMG_9758.JPG"))
 
@@ -125,7 +124,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "sensitive exif data must be stripped from scaled images" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
+      val eventualResponse = ws.url(localUrl + "/scale?width=800&height=600&rotate=0").post(new File("test/resources/IMG_20150422_122718.jpg"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -137,7 +136,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can thumbnail videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?width=320&height=200").
+      val eventualResponse = ws.url(localUrl + "/video/transcode?width=320&height=200").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
 
@@ -151,7 +150,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "video thumbnail size can be specified" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?width=120&height=100").
+      val eventualResponse = ws.url(localUrl + "/video/transcode?width=120&height=100").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV"))
 
@@ -169,7 +168,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "can transcode videos" in {
     running(TestServer(port)) {
-      val eventualResponse = WS.url(localUrl + "/video/transcode?width=284&height=160").post(new File("test/resources/IMG_0004.MOV"))
+      val eventualResponse = ws.url(localUrl + "/video/transcode?width=284&height=160").post(new File("test/resources/IMG_0004.MOV"))
 
       val response = Await.result(eventualResponse, thirtySeconds)
 
@@ -182,7 +181,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "video output format can be specified via the Accept header" in {
     running(TestServer(port)) {
-      val eventualTranscodingResponse = WS.url(localUrl + "/video/transcode").
+      val eventualTranscodingResponse = ws.url(localUrl + "/video/transcode").
         withHeaders(("Accept" -> "video/mp4")).
         post(new File("test/resources/IMG_0004.MOV"))
 
@@ -198,7 +197,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
 
   "video thumbnails can be rotated and letter boxed to fit requested dimensions" in {
     running(TestServer(port)) {
-      val response = Await.result(WS.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
+      val response = Await.result(ws.url(localUrl + "/video/transcode?width=568&height=320&rotate=90").
         withHeaders(("Accept" -> "image/jpeg")).
         post(new File("test/resources/IMG_0004.MOV")), thirtySeconds)
 
@@ -210,7 +209,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
   /*  TODO how to test async only end points?
   "faces in images can be detected so that client apps can make more informed cropping decisions" in {
     running(TestServer(port)) {
-      val response = Await.result(WS.url(localUrl + "/detect-faces").
+      val response = Await.result(ws.url(localUrl + "/detect-faces").
         post(new File("test/resources/5282722938_e0e2515624_o.jpg")), thirtySeconds)
 
       Json.parse(response.body).as[JsArray].value.size must equalTo(1)
@@ -222,7 +221,7 @@ class MediaMonkeySpec extends Specification with ResponseToFileWriter {
     val tf = java.io.File.createTempFile("response", "tmp")
     writeResponseBodyToFile(response, tf)
 
-    val eventualMetaResponse = WS.url(localUrl + "/meta").post(tf)
+    val eventualMetaResponse = ws.url(localUrl + "/meta").post(tf)
     val metaResponse = Await.result(eventualMetaResponse, thirtySeconds)
     Json.parse(metaResponse.body)
   }
