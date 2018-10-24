@@ -127,7 +127,7 @@ class MetadataSpec extends Specification with ResponseToFileWriter with TestWSCl
       val response = Await.result(eventualResponse, thirtySeconds)
 
       (Json.parse(response.body) \ "formatSpecificAttributes" \\ "Display_aspect_ratio").head.as[String] must equalTo("16:9")
-      (Json.parse(response.body) \ "formatSpecificAttributes" \\ "Frame_rate").head.as[String] must equalTo("30.000 fps")
+      (Json.parse(response.body) \ "formatSpecificAttributes" \\ "Frame_rate").head.as[String] must equalTo("30.000 FPS")
     }
   }
 
