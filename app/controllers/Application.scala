@@ -185,7 +185,6 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
     }
 
     callback.fold {
-
       implicit val ec = executionContext
 
       eventualResult.map { ro =>
@@ -220,7 +219,13 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
           callbackPost.map { rp =>
             val duration = new org.joda.time.Duration(startTime, DateTime.now)
-            Logger.info("Response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
+
+            rp.status match {
+              case 200 =>
+                Logger.info("Response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
+              case _ =>
+                Logger.warn("Unexpected response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays + ": " + rp.body)
+            }
             Logger.debug("Deleting tmp file after calling back: " + r._1)
             r._1.delete()
 
