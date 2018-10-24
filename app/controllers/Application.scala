@@ -181,9 +181,10 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
   private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String], executionContext: ExecutionContext): Future[Result] = {
 
+    def dimensionHeadersFor(dimensions: Option[(Int, Int)) = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
+
     def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)], file: File): Seq[(String, String)] = {
-      val dimensionHeaders = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
-      Seq(CONTENT_TYPE -> of.mineType) ++ Seq(CONTENT_LENGTH -> file.length.toString) ++ dimensionHeaders
+      Seq(CONTENT_TYPE -> of.mineType) ++ Seq(CONTENT_LENGTH -> file.length.toString) ++ dimensionHeadersFor(dimensions)
     }
 
     callback.fold {
@@ -200,7 +201,7 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
             r._1.delete()
-          }).withHeaders(headersFor(of, r._2, r._1): _*)
+          }).withHeaders(dimensionHeadersFor(r._2): _*)
         }
       }(ec)
 
