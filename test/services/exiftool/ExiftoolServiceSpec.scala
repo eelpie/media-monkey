@@ -3,13 +3,14 @@ package services.exiftool
 import java.io.File
 
 import javax.inject.Inject
-import org.specs2.mutable.Specification
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class ExiftoolServiceSpec @Inject()(exifToolService: ExiftoolService) extends Specification {
+class ExiftoolServiceSpec @Inject()(exifToolService: ExiftoolService) extends PlaySpec with GuiceOneServerPerSuite {
 
   val tenSeconds = Duration(10, SECONDS)
 
@@ -18,7 +19,7 @@ class ExiftoolServiceSpec @Inject()(exifToolService: ExiftoolService) extends Sp
 
     val contentType  = Await.result(exifToolService.contentType(videoFile), tenSeconds)
 
-    contentType must equalTo(Some("video/quicktime"))
+    contentType must equal (Some("video/quicktime"))
   }
 
   "can add XMP tags to images" in {
