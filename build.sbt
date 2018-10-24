@@ -10,6 +10,7 @@ resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
 resolvers += "billylieurance-net" at "http://www.billylieurance.net/maven2"
 
+libraryDependencies += guice
 libraryDependencies ++= Seq(jdbc , cache , ws)
 
 libraryDependencies += "org.apache.tika" % "tika-core" % "1.11"
