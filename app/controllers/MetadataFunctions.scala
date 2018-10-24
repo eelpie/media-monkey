@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 trait MetadataFunctions extends MediainfoInterpreter {
 
-  val tika: TikaService
+  val tikaService: TikaService
   def mediainfoService: MediainfoService
 
   private val RecognisedImageTypes = Seq(
@@ -57,7 +57,7 @@ trait MetadataFunctions extends MediainfoInterpreter {
     val md5Hash = DigestUtils.md5Hex(stream)
     stream.close()
 
-    Summary(`type`, contentType, tika.suggestedFileExtension(contentType), md5Hash)
+    Summary(`type`, contentType, tikaService.suggestedFileExtension(contentType), md5Hash)
   }
 
   def parseExifRotationString(i: String): Option[Int] = {

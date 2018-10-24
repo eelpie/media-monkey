@@ -10,6 +10,7 @@ import model._
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import play.api.Logger
+import play.api.http.FileMimeTypes
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, BodyParsers, Controller}
@@ -24,9 +25,9 @@ import services.video.VideoService
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
-class MetaController @Inject()(val akkaSystem: ActorSystem, ws: WSClient, tikaService: TikaService,
+class MetaController @Inject()(val akkaSystem: ActorSystem, ws: WSClient, val tikaService: TikaService,
                                imageService: ImageService, videoService: VideoService, exiftoolService: ExiftoolService,
-                               mediainfoService: MediainfoService, faceDetector: FaceDetector) extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
+                               val mediainfoService: MediainfoService, faceDetector: FaceDetector)(implicit fileMimeTypes: FileMimeTypes) extends Controller with MediainfoInterpreter with Retry with MetadataFunctions with ExifLocationExtractor with JsonResponses with ReasonableWaitTimes {
 
   val thirtySeconds = Duration(30, TimeUnit.SECONDS)
 
@@ -122,7 +123,7 @@ class MetaController @Inject()(val akkaSystem: ActorSystem, ws: WSClient, tikaSe
     val metadata = {
       Logger.info("Processing metadate for file: " + sourceFile.file)
 
-      tika.meta(sourceFile.file).flatMap { tmdo =>
+      tikaService.meta(sourceFile.file).flatMap { tmdo =>
         val tikaContentType = tmdo.flatMap(md => md.get(CONTENT_TYPE))
         val eventualContentType = tikaContentType.fold {
           exiftoolService.contentType(sourceFile.file)

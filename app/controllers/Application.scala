@@ -8,6 +8,7 @@ import futures.Retry
 import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
+import play.api.http.FileMimeTypes
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, BodyParsers, Controller, Result}
@@ -19,7 +20,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
-class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoService: VideoService, imageService: ImageService, mediainfoService: MediainfoService) extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
+class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoService: VideoService, imageService: ImageService,
+                            mediainfoService: MediainfoService)(implicit fileMimeTypes: FileMimeTypes) extends Controller with Retry with MediainfoInterpreter with JsonResponses with ReasonableWaitTimes {
 
   val thirtySeconds = Duration(30, TimeUnit.SECONDS)
 
@@ -192,6 +194,7 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
         } { r =>
           Logger.debug("Sending file")
+
           val of: OutputFormat = r._3
           Ok.sendFile(r._1, onClose = () => {
             Logger.debug("Deleting tmp file after sending file: " + r._1)
