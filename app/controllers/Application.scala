@@ -222,9 +222,8 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
           callbackPost.map { rp =>
             val duration = new org.joda.time.Duration(startTime, DateTime.now)
-
             rp.status match {
-              case 200 =>
+              case 202 =>
                 Logger.info("Response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays)
               case _ =>
                 Logger.warn("Unexpected response from callback url " + c + ": " + rp.status + " after " + duration.toStandardSeconds.toStandardDays + ": " + rp.body)
