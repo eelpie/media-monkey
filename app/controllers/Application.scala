@@ -181,7 +181,7 @@ class Application @Inject()(val akkaSystem: ActorSystem, ws: WSClient, videoServ
 
   private def handleResult(eventualResult: Future[Option[(File, Option[(Int, Int)], OutputFormat)]], callback: Option[String], executionContext: ExecutionContext): Future[Result] = {
 
-    def dimensionHeadersFor(dimensions: Option[(Int, Int)) = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
+    def dimensionHeadersFor(dimensions: Option[(Int, Int)]) = Seq(dimensions.map(d => XWidth -> d._1.toString), dimensions.map(d => XHeight -> d._2.toString)).flatten
 
     def headersFor(of: OutputFormat, dimensions: Option[(Int, Int)], file: File): Seq[(String, String)] = {
       Seq(CONTENT_TYPE -> of.mineType) ++ Seq(CONTENT_LENGTH -> file.length.toString) ++ dimensionHeadersFor(dimensions)
