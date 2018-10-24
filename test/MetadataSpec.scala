@@ -1,7 +1,6 @@
 import java.io.File
 
 import org.specs2.mutable._
-import play.api.Play.current
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test._
