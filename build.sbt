@@ -31,11 +31,11 @@ javaOptions in Universal ++= Seq(
 
 enablePlugins(DockerPlugin)
 import com.typesafe.sbt.packager.docker._
-dockerBaseImage := "debian:jessie-backports"
+dockerBaseImage := "debian:stretch-backports"
 dockerCommands ++= Seq(
   Cmd("USER", "root"),
   ExecCmd("RUN", "apt-get", "update"),
   ExecCmd("RUN", "apt-get", "upgrade", "-y"),
-  ExecCmd("RUN", "apt-get", "install", "-t", "jessie-backports", "-y", "openjdk-8-jre"),
+  ExecCmd("RUN", "apt-get", "install", "-t", "stretch-backports", "-y", "openjdk-11-jre"),
   ExecCmd("RUN", "apt-get", "install", "-y", "imagemagick", "libav-tools", "mediainfo", "libimage-exiftool-perl", "webp")
 )
