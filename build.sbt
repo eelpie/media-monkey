@@ -36,6 +36,6 @@ dockerCommands ++= Seq(
   Cmd("USER", "root"),
   ExecCmd("RUN", "apt-get", "update"),
   ExecCmd("RUN", "apt-get", "upgrade", "-y"),
-  ExecCmd("RUN", "apt-get", "install", "-t", "stretch-backports", "-y", "openjdk-11-jre"),
+  ExecCmd("RUN", "apt-get", "install", "-t", "stretch-backports", "-y", "openjdk-11-jre-headless"),
   ExecCmd("RUN", "apt-get", "install", "-y", "imagemagick", "libav-tools", "mediainfo", "libimage-exiftool-perl", "webp")
 )
