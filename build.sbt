@@ -1,5 +1,4 @@
 name := "media-monkey"
-version := "1.0"
 
 lazy val `media-monkey` = (project in file(".")).enablePlugins(PlayScala)
 
