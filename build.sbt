@@ -29,6 +29,8 @@ javaOptions in Universal ++= Seq(
   "-J-Xmx2048m"
 )
 
+enablePlugins(GitVersioning)
+
 enablePlugins(DockerPlugin)
 import com.typesafe.sbt.packager.docker._
 dockerBaseImage := "debian:stretch-backports"
