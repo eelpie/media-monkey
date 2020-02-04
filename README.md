@@ -10,7 +10,9 @@ Backed by Apache Tika and mediainfo.
 
 The media file should be sent as raw bytes on the request body.
 
-
+```
+curl -XPOST --data-binary "@test/resources/IMG_0004.MOV" http://localhost:9000/meta 
+```
 
 ### POST /meta/tag
 
