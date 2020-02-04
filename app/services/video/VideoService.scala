@@ -195,7 +195,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
   }
 
   private def avconvInput(input: File, mediainfo: Option[Seq[Track]]): Seq[String] = {
-    Seq("avconv", "-y") ++ videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv3")) else None).getOrElse(Seq()) ++ Seq("-i", input.getAbsolutePath)
+    Seq("ffmpeg", "-y") ++ videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv3")) else None).getOrElse(Seq()) ++ Seq("-i", input.getAbsolutePath)
   }
 
 }
