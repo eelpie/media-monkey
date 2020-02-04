@@ -23,7 +23,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
       val rotationToApply = rotation.getOrElse {
         val ir = inferRotation(mediainfo)
-        Logger.info("Applying rotation infered from mediainfo: " + ir)
+        Logger.info("Applying rotation inferred from mediainfo: " + ir)
         ir
       }
 
@@ -42,7 +42,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
           rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply), None) ++
           Seq("-ss", "00:00:00", "-r", "1", "-an", "-vframes", "1", output.getAbsolutePath)
 
-        Logger.info("avconv command: " + avconvCmd)
+        Logger.info("ffmpeg command: " + avconvCmd)
 
         val process: Process = avconvCmd.run(logger)
         val exitValue: Int = process.exitValue() // Blocks until the process completes
@@ -195,7 +195,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
   }
 
   private def avconvInput(input: File, mediainfo: Option[Seq[Track]]): Seq[String] = {
-    Seq("ffmpeg", "-y") ++ videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv3")) else None).getOrElse(Seq()) ++ Seq("-i", input.getAbsolutePath)
+    Seq("ffmpeg", "-noautorotate", "-y") ++ videoCodec(mediainfo).flatMap(c => if (c == "WMV3") Some(Seq("-c:v", "wmv3")) else None).getOrElse(Seq()) ++ Seq("-i", input.getAbsolutePath)
   }
 
 }
