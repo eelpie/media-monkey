@@ -144,7 +144,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
     implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
     mediainfoService.mediainfo(input).flatMap { mediainfo =>
-      val rotationToApply = rotation.getOrElse(inferRotation(mediainfo))
+      val rotationToApply = rotation.getOrElse(0)
       val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
       val possiblePadding = padding(sourceDimensions, outputSize, sourceAspectRatio, rotationToApply)
 
