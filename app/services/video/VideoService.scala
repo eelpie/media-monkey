@@ -80,7 +80,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
           rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), sourceAspectRatio, rotationToApply), Some("fps=1")) ++
           Seq(output.getAbsolutePath + "-%6d." + outputFormat)
 
-        Logger.info("avconv command: " + avconvCmd)
+        Logger.info("avconv command: " + avconvCmd.mkString(" "))
         val process: Process = avconvCmd.run(logger)
         val exitValue: Int = process.exitValue() // Blocks until the process completes
 
@@ -125,7 +125,7 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
 
       val avconvCmd = avconvInput(input, mediainfo) ++ Seq("-vn", output.getAbsolutePath)
       Logger.info("Processing video audio track")
-      Logger.info("avconv command: " + avconvCmd)
+      Logger.info("avconv command: " + avconvCmd.mkString(" "))
 
       if (avconvCmd.run(logger).exitValue() == 0) {
         Logger.info("Transcoded video output to: " + output.getAbsolutePath)
@@ -151,11 +151,10 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
       Future {
         val outputFile = File.createTempFile("transcoded", "." + outputFormat)
         val avconvCmd = avconvInput(input, mediainfo) ++
-          sizeParameters(outputSize.map(os => os._1), outputSize.map(os => os._2)) ++
           rotationAndPaddingParameters(rotationToApply, possiblePadding, None) ++
           Seq("-b:a", "128k", "-strict", "experimental", outputFile.getAbsolutePath)
 
-        Logger.info("avconv command: " + avconvCmd)
+        Logger.info("avconv command: " + avconvCmd.mkString(" "))
 
         val process: Process = avconvCmd.run(logger)
         val exitValue: Int = process.exitValue() // Blocks until the process completes
