@@ -67,6 +67,9 @@ Backed by imagemagick.
 
 Transcode a video.
 
+```
+curl -XPOST -H "Accept: video/mp4" --data-binary "@test/resources/IMG_0004.MOV" 'http://localhost:9000/video/transcode?width=800&height=600&rotate=0' --output /tmp/out.mp4
+```
 
 ## Docker
 
