@@ -141,6 +141,17 @@ class MetadataSpec extends Specification with ResponseToFileWriter with TestWSCl
     }
   }
 
+  "video metadata should include inferred rotation (iPhone)" in {
+    running(TestServer(port)) {
+      val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_0063.MOV"))
+
+      val response = Await.result(eventualResponse, thirtySeconds)
+      val rotationField = (Json.parse(response.body) \ "formatSpecificAttributes" \ "rotation").toOption
+
+      rotationField.get.as[Int] must equalTo(90)
+    }
+  }
+
   "md5 hash should be included in the summary to assist with duplicate detection" in {
     running(TestServer(port)) {
       val eventualResponse = ws.url(localUrl + "/meta").post(new File("test/resources/IMG_20150422_122718.jpg"))
