@@ -105,28 +105,6 @@ class Application @Inject()(
     }
   }
 
-  def videoStrip(w: Option[Int], h: Option[Int], callback: Option[String], rotate: Option[Int], aspectRatio: Option[Double]) = Action.async(parse.temporaryFile) { request =>
-    val width = w.getOrElse(320)
-    val height = h.getOrElse(180)
-
-    val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
-
-    inferOutputTypeFromAcceptHeader(request.headers.get("Accept"), SupportedImageOutputFormats).fold(Future.successful(BadRequest(UnsupportedOutputFormatRequested))) { of =>
-      val sourceFile = request.body
-      val eventualResult = videoService.strip(sourceFile.file, of.fileExtension, width, height, aspectRatio, rotate).flatMap { ro =>
-        sourceFile.delete
-
-        ro.map { r =>
-          imageService.info(r).map { dimensions =>
-            Some(r, Some(dimensions), of)
-          }
-        }.getOrElse(Future.successful(None))
-      }
-
-      handleResult(eventualResult, callback, videoProcessingExecutionContext)
-    }
-  }
-
   def videoAudio(callback: Option[String]) = Action.async(BodyParsers.parse.temporaryFile) { request =>
     val sourceFile = request.body
 
