@@ -60,63 +60,6 @@ class VideoService @Inject()(val akkaSystem: ActorSystem, mediainfoService: Medi
     }
   }
 
-  def strip(input: File, outputFormat: String, width: Int, height: Int, sourceAspectRatio: Option[Double], rotation: Option[Int]): Future[Option[File]] = {
-    implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
-    mediainfoService.mediainfo(input).flatMap { mediainfo =>
-      val rotationToApply = rotation.getOrElse {
-        val ir = inferRotation(mediainfo)
-        Logger.info("Applying rotation inferred from mediainfo: " + ir)
-        ir
-      }
-
-      Future {
-        val output: File = File.createTempFile("strip", "")
-
-        val sourceDimensions: Option[(Int, Int)] = videoDimensions(mediainfo)
-
-        val avconvCmd = avconvInput(input, mediainfo) ++
-          sizeParameters(Some(width), Some(height)) ++
-          Seq("-ss", "00:00:00", "-an") ++
-          rotationAndPaddingParameters(rotationToApply, padding(sourceDimensions, Some(width, height), sourceAspectRatio, rotationToApply), Some("fps=1")) ++
-          Seq(output.getAbsolutePath + "-%6d." + outputFormat)
-
-        Logger.info("avconv command: " + avconvCmd.mkString(" "))
-        val process: Process = avconvCmd.run(logger)
-        val exitValue: Int = process.exitValue() // Blocks until the process completes
-
-        if (exitValue == 0) {
-          Logger.info("Strip files output to: " + output.getAbsolutePath)
-
-          try {
-            def appendImagesOperation(files: String, outputPath: String): IMOperation = {
-              val op: IMOperation = new IMOperation()
-              op.addImage(files)
-              op.appendHorizontally()
-              op.addImage(outputPath)
-              op
-            }
-
-            val cmd: ConvertCmd = new ConvertCmd()
-            cmd.run(appendImagesOperation(output.getAbsolutePath + "-*." + outputFormat, output.getAbsolutePath))
-            Logger.info("Completed ImageMagik operation output to: " + output.getAbsolutePath)
-            Some(output)
-
-          } catch {
-            case e: Exception =>
-              Logger.error("Exception while executing IM operation", e)
-              output.delete
-              None
-          }
-
-        } else {
-          Logger.warn("avconv process failed")
-          output.delete
-          None
-        }
-      }
-    }
-  }
-
   def audio(input: File): Future[Option[File]] = {
     implicit val videoProcessingExecutionContext: ExecutionContext = akkaSystem.dispatchers.lookup("video-processing-context")
 
