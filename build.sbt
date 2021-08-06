@@ -2,9 +2,8 @@ name := "media-monkey"
 
 lazy val `media-monkey` = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.13"
 
-resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "openimaj" at "http://maven.openimaj.org"
 resolvers += "billylieurance-net" at "http://www.billylieurance.net/maven2"
 
